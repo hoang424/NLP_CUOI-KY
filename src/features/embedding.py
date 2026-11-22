@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from collections import Counter
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable, Sequence
 
 import numpy as np
 
-from src.config import RANDOM_STATE
+from src.config import RANDOM_STATE, TEXTCNN_MAX_LEN
 
 PAD_TOKEN = "<PAD>"
 UNK_TOKEN = "<UNK>"
@@ -33,10 +33,23 @@ def build_vocab(
     return vocab
 
 
+def texts_to_id_lists(
+    texts: Iterable[str],
+    vocab: dict[str, int],
+    max_len: int = TEXTCNN_MAX_LEN,
+) -> list[list[int]]:
+    """Chuyển danh sách văn bản đã tách từ sang danh sách chỉ số cắt tối đa max_len (chưa pad cố định)."""
+    unk_idx = vocab.get(UNK_TOKEN, 1)
+    return [
+        [vocab.get(tok, unk_idx) for tok in str(text).split()[:max_len]]
+        for text in texts
+    ]
+
+
 def texts_to_sequences(
     texts: Iterable[str],
     vocab: dict[str, int],
-    max_len: int = 200,
+    max_len: int = TEXTCNN_MAX_LEN,
 ) -> np.ndarray:
     """Chuyển danh sách văn bản đã tách từ sang mảng chỉ số có padding cố định."""
     pad_idx = vocab.get(PAD_TOKEN, 0)
@@ -50,6 +63,142 @@ def texts_to_sequences(
         sequences.append(ids)
 
     return np.asarray(sequences, dtype=np.int64)
+
+
+class LengthBucketBatchSampler:
+    """Gom batch theo bucket độ dài (mega-batch sort + shuffle batch) để giảm padding khi Dynamic Padding."""
+
+    def __init__(
+        self,
+        lengths: Sequence[int],
+        batch_size: int = 256,
+        bucket_mult: int = 16,
+        seed: int = RANDOM_STATE,
+    ) -> None:
+        self.lengths = [int(x) for x in lengths]
+        self.batch_size = max(1, int(batch_size))
+        self.bucket_mult = max(1, int(bucket_mult))
+        self.seed = int(seed)
+        self._epoch = 0
+
+    def __len__(self) -> int:
+        n = len(self.lengths)
+        return (n + self.batch_size - 1) // self.batch_size if n > 0 else 0
+
+    def __iter__(self):
+        n = len(self.lengths)
+        if n == 0:
+            return
+        rng = np.random.default_rng(self.seed + self._epoch)
+        self._epoch += 1
+        indices = rng.permutation(n)
+        pool_size = max(self.batch_size, self.batch_size * self.bucket_mult)
+        batches: list[list[int]] = []
+        for start in range(0, n, pool_size):
+            pool = indices[start : start + pool_size].tolist()
+            pool.sort(key=lambda idx: self.lengths[idx])
+            for b_start in range(0, len(pool), self.batch_size):
+                batches.append(pool[b_start : b_start + self.batch_size])
+        for b_idx in rng.permutation(len(batches)):
+            yield batches[int(b_idx)]
+
+
+def make_dynamic_dataloader(
+    id_lists: Sequence[Sequence[int]],
+    labels: np.ndarray | None = None,
+    batch_size: int = 256,
+    shuffle: bool = False,
+    min_len: int = 4,
+    pad_idx: int = 0,
+    pin_memory: bool = False,
+    seed: int = RANDOM_STATE,
+    bucket_mult: int = 16,
+) -> Any:
+    """Tạo DataLoader PyTorch với Dynamic Padding theo độ dài lớn nhất trong từng batch."""
+    import torch
+    from torch.utils.data import DataLoader, Dataset
+
+    class _SequenceDataset(Dataset):
+        def __init__(self, seqs: Sequence[Sequence[int]], targets: np.ndarray | None) -> None:
+            self.seqs = seqs
+            self.targets = targets
+
+        def __len__(self) -> int:
+            return len(self.seqs)
+
+        def __getitem__(self, idx: int):
+            if self.targets is None:
+                return (self.seqs[idx],)
+            return self.seqs[idx], self.targets[idx]
+
+    def _collate(batch: list[tuple[Any, ...]]):
+        seqs = [item[0] for item in batch]
+        batch_max = max(int(min_len), max((len(s) for s in seqs), default=0))
+        padded = np.full((len(seqs), batch_max), pad_idx, dtype=np.int64)
+        for row_idx, seq in enumerate(seqs):
+            if seq:
+                padded[row_idx, : len(seq)] = seq
+        x_tensor = torch.from_numpy(padded)
+        if labels is None:
+            return (x_tensor,)
+        y_arr = np.stack([item[1] for item in batch]).astype(np.float32, copy=False)
+        return x_tensor, torch.from_numpy(y_arr)
+
+    dataset = _SequenceDataset(id_lists, labels)
+    if shuffle:
+        sampler = LengthBucketBatchSampler(
+            lengths=[len(s) for s in id_lists],
+            batch_size=batch_size,
+            bucket_mult=bucket_mult,
+            seed=seed,
+        )
+        return DataLoader(
+            dataset,
+            batch_sampler=sampler,
+            collate_fn=_collate,
+            pin_memory=pin_memory,
+        )
+    return DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        collate_fn=_collate,
+        pin_memory=pin_memory,
+    )
+
+
+def estimate_dynamic_pad_ratio(
+    id_lists: Sequence[Sequence[int]],
+    batch_size: int = 256,
+    min_len: int = 4,
+    bucketed: bool = True,
+    seed: int = RANDOM_STATE,
+    bucket_mult: int = 16,
+) -> float:
+    """Ước lượng tỷ lệ phần tử <PAD> thực tế khi áp dụng Dynamic Padding theo batch."""
+    n = len(id_lists)
+    if n == 0:
+        return 0.0
+    lengths = [len(s) for s in id_lists]
+    if bucketed:
+        batches = list(
+            LengthBucketBatchSampler(
+                lengths=lengths,
+                batch_size=batch_size,
+                bucket_mult=bucket_mult,
+                seed=seed,
+            )
+        )
+    else:
+        batches = [list(range(i, min(i + batch_size, n))) for i in range(0, n, batch_size)]
+
+    total_slots = 0
+    total_tokens = 0
+    for batch in batches:
+        batch_max = max(int(min_len), max((lengths[i] for i in batch), default=0))
+        total_slots += len(batch) * batch_max
+        total_tokens += sum(lengths[i] for i in batch)
+    return float(total_slots - total_tokens) / float(total_slots) if total_slots > 0 else 0.0
 
 
 def load_pretrained_embeddings(

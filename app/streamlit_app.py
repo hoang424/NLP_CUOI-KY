@@ -196,11 +196,12 @@ from src.preprocessing.tokenizer import load_stopwords, preprocess_text
 MODEL_OPTIONS: dict[str, str] = {
     "logistic_regression": "Logistic Regression (TF-IDF) — Macro-F1 (0.4897) & Micro-F1 cao nhất (0.6035)",
     "linear_svm": "Linear SVM (TF-IDF) — Macro-F1 (0.4767) & Accuracy (0.0618)",
-    "textcnn": "TextCNN (Word Embedding) — Macro-F1 (0.4381) & Micro-F1 (0.5742)",
+    "textcnn": "TextCNN (Word Embedding) — Macro-F1 (0.4237) & Micro-F1 (0.5657)",
     "multinomial_nb": "Multinomial Naive Bayes (TF-IDF) — Macro-F1 (0.4031) & Micro-F1 (0.5877)",
 }
 
 SAMPLE_SUMMARIES: dict[str, str] = {
+    "Tự nhập văn bản mới": "",
     "Mẫu 1: Tiên hiệp / Huyền huyễn": (
         "Thiếu niên nghèo tình cờ nhặt được cổ ngọc ẩn chứa truyền thừa tu luyện trên núi cao, "
         "từng bước đột phá cảnh giới, chiến đấu với ma tộc và vượt qua thiên kiếp để bảo vệ tông môn."
@@ -218,7 +219,6 @@ SAMPLE_SUMMARIES: dict[str, str] = {
         "của mấy đứa em nhỏ. Dựa vào kiến thức nông nghiệp và buôn bán, nàng khai khẩn ruộng đất, "
         "làm giàu nuôi gia đình và gây dựng cuộc sống bình yên nơi thôn dã."
     ),
-    "Tự nhập văn bản mới": "",
 }
 
 FIGURE_CAPTIONS: dict[str, str] = {
@@ -351,10 +351,10 @@ def predict_story_probs(model_key: str, tokens: str) -> np.ndarray:
 
 
 def render_prediction_tab() -> None:
-    """Tab chính: Nhập tóm tắt truyện và dự đoán Top-K thể loại + xác suất."""
+    """Tab chính: Nhập tóm tắt truyện và dự đoán toàn bộ thể loại đạt ngưỡng xác suất."""
     st.subheader("Dự đoán thể loại từ phần giới thiệu / tóm tắt truyện")
 
-    col_cfg1, col_cfg2, col_cfg3 = st.columns([2.2, 1, 1.3])
+    col_cfg1, col_cfg2 = st.columns([2.4, 1.4])
     with col_cfg1:
         selected_key = st.selectbox(
             "Chọn mô hình",
@@ -362,20 +362,20 @@ def render_prediction_tab() -> None:
             format_func=lambda k: MODEL_OPTIONS[k],
         )
     with col_cfg2:
-        top_k = st.selectbox("Hiển thị Top-K", options=[2, 3], index=1)
-    with col_cfg3:
         use_tuned = st.checkbox("Dùng ngưỡng tối ưu theo từng nhãn", value=True)
         fixed_threshold = float(DEFAULT_THRESHOLD)
         if not use_tuned:
             fixed_threshold = st.slider("Ngưỡng xác suất cố định", 0.1, 0.9, float(DEFAULT_THRESHOLD), 0.05)
 
     selected_sample = st.selectbox(
-        "Chọn nhanh văn bản mẫu (hoặc chọn 'Tự nhập văn bản mới')",
+        "Chọn văn bản mẫu (mặc định: Tự nhập văn bản mới)",
         options=list(SAMPLE_SUMMARIES.keys()),
+        index=0,
     )
     user_text = st.text_area(
         "Nhập hoặc dán đoạn văn bản giới thiệu truyện:",
         value=SAMPLE_SUMMARIES[selected_sample],
+        placeholder="Nhập hoặc dán đoạn giới thiệu / tóm tắt truyện tiếng Việt vào đây...",
         height=160,
     )
 
@@ -396,6 +396,7 @@ def render_prediction_tab() -> None:
                     "display_name": GENRE_DISPLAY_NAMES.get(label, label),
                     "probability": float(probs[idx]),
                     "threshold": float(thresholds[idx]),
+                    "meets_threshold": bool(probs[idx] >= thresholds[idx]),
                     "predicted": bool(pred_flags[idx]),
                 }
                 for idx, label in enumerate(GENRE_LABELS)
@@ -404,12 +405,26 @@ def render_prediction_tab() -> None:
             reverse=True,
         )
 
-        predicted_names = [r["display_name"] for r in results if r["predicted"]]
-        st.success(f"**Thể loại dự đoán:** {', '.join(predicted_names)}")
+        matched_results = [r for r in results if r["meets_threshold"]]
+        if matched_results:
+            predicted_names = [r["display_name"] for r in matched_results]
+            st.success(
+                f"**Thể loại dự đoán ({len(matched_results)} thể loại đạt ngưỡng):** {', '.join(predicted_names)}"
+            )
 
-        st.markdown(f"**Top-{top_k} thể loại có xác suất cao nhất:**")
-        for rank, item in enumerate(results[:top_k], start=1):
-            st.write(f"{rank}. **{item['display_name']}** — {item['probability'] * 100:.1f}%")
+            st.markdown(f"**Toàn bộ thể loại đạt ngưỡng ({len(matched_results)} thể loại):**")
+            for rank, item in enumerate(matched_results, start=1):
+                st.write(
+                    f"{rank}. **{item['display_name']}** — {item['probability'] * 100:.1f}% "
+                    f"(ngưỡng: {item['threshold'] * 100:.1f}%)"
+                )
+        else:
+            fallback = next((r for r in results if r["predicted"]), results[0])
+            st.warning(
+                f"**Không có thể loại nào đạt ngưỡng áp dụng.** "
+                f"Gợi ý thể loại có xác suất cao nhất: **{fallback['display_name']}** — "
+                f"{fallback['probability'] * 100:.1f}% (ngưỡng: {fallback['threshold'] * 100:.1f}%)"
+            )
 
         prob_df = pd.DataFrame(
             {
@@ -423,8 +438,11 @@ def render_prediction_tab() -> None:
             {
                 "Thể loại": [r["display_name"] for r in results],
                 "Xác suất (%)": [round(r["probability"] * 100, 1) for r in results],
-                "Ngưỡng áp dụng": [round(r["threshold"], 2) for r in results],
-                "Dự đoán": ["Có" if r["predicted"] else "Không" for r in results],
+                "Ngưỡng áp dụng (%)": [round(r["threshold"] * 100, 1) for r in results],
+                "Dự đoán": [
+                    "Có" if r["meets_threshold"] else ("Có (dự phòng)" if r["predicted"] else "Không")
+                    for r in results
+                ],
             }
         )
         with st.expander(f"Xem bảng xác suất chi tiết {len(GENRE_LABELS)} nhãn & văn bản sau tiền xử lý"):

@@ -18,6 +18,7 @@ from src.config import (
     RANDOM_STATE,
     STORIES_CLEAN_CSV,
     STORIES_CSV,
+    TEXTCNN_MAX_LEN,
     TFIDF_VECTORIZER_PATH,
     TRAIN_RATIO,
     VAL_RATIO,
@@ -130,7 +131,12 @@ def run_pipeline(reprocess: bool = False, include_dl: bool = True) -> pd.DataFra
         save_experiment_result,
     )
     from src.features.bow_tfidf import build_bow_vectorizer, fit_transform_tfidf
-    from src.features.embedding import build_corpus_embeddings, build_vocab, texts_to_sequences
+    from src.features.embedding import (
+        build_corpus_embeddings,
+        build_vocab,
+        make_dynamic_dataloader,
+        texts_to_id_lists,
+    )
     from src.models.ml_models import (
         apply_thresholds,
         get_linear_svm,
@@ -271,7 +277,6 @@ def run_pipeline(reprocess: bool = False, include_dl: bool = True) -> pd.DataFra
 
     if include_dl:
         import torch
-        from torch.utils.data import DataLoader, TensorDataset
 
         from src.models.textcnn import (
             TextCNNClassifier,
@@ -287,15 +292,15 @@ def run_pipeline(reprocess: bool = False, include_dl: bool = True) -> pd.DataFra
             torch.cuda.manual_seed_all(RANDOM_STATE)
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        max_len = 200
+        max_len = TEXTCNN_MAX_LEN
         emb_dim = 128
         num_filters = 64
         kernel_sizes = (2, 3, 4)
 
         vocab = build_vocab(train_tokens, min_freq=2, max_vocab_size=20000)
-        x_seq_train = texts_to_sequences(train_tokens, vocab, max_len=max_len)
-        x_seq_val = texts_to_sequences(val_tokens, vocab, max_len=max_len)
-        x_seq_eval = texts_to_sequences(test_tokens if use_test else val_tokens, vocab, max_len=max_len)
+        x_ids_train = texts_to_id_lists(train_tokens, vocab, max_len=max_len)
+        x_ids_val = texts_to_id_lists(val_tokens, vocab, max_len=max_len)
+        x_ids_eval = texts_to_id_lists(test_tokens if use_test else val_tokens, vocab, max_len=max_len)
 
         pretrained_matrix = build_corpus_embeddings(
             train_tokens,
@@ -308,20 +313,24 @@ def run_pipeline(reprocess: bool = False, include_dl: bool = True) -> pd.DataFra
         )
 
         pin_mem = device == "cuda"
-        seq_train_loader = DataLoader(
-            TensorDataset(torch.tensor(x_seq_train, dtype=torch.long), torch.tensor(y_train, dtype=torch.float32)),
+        seq_train_loader = make_dynamic_dataloader(
+            x_ids_train,
+            labels=y_train,
             batch_size=256,
             shuffle=True,
             pin_memory=pin_mem,
+            seed=RANDOM_STATE,
         )
-        seq_val_loader = DataLoader(
-            TensorDataset(torch.tensor(x_seq_val, dtype=torch.long), torch.tensor(y_val, dtype=torch.float32)),
+        seq_val_loader = make_dynamic_dataloader(
+            x_ids_val,
+            labels=y_val,
             batch_size=256,
             shuffle=False,
             pin_memory=pin_mem,
         )
-        seq_eval_loader = DataLoader(
-            TensorDataset(torch.tensor(x_seq_eval, dtype=torch.long), torch.tensor(eval_y, dtype=torch.float32)),
+        seq_eval_loader = make_dynamic_dataloader(
+            x_ids_eval,
+            labels=eval_y,
             batch_size=256,
             shuffle=False,
             pin_memory=pin_mem,
@@ -391,7 +400,7 @@ def run_pipeline(reprocess: bool = False, include_dl: bool = True) -> pd.DataFra
             model_name="TextCNN (Word Embedding)",
             feature_type=f"PPMI-SVD Emb + Multi-scale CNN (max_len={max_len})",
             metrics=cnn_metrics,
-            notes=f"{eval_split_name.capitalize()} set ({len(eval_y)} mẫu) | TextCNN (k=2,3,4; f={num_filters}; emb={emb_dim} PPMI-SVD) + sqrt pos_weight | {thresh_mode}",
+            notes=f"{eval_split_name.capitalize()} set ({len(eval_y)} mẫu) | TextCNN (k=2,3,4; f={num_filters}; emb={emb_dim} PPMI-SVD; dynamic_pad) + sqrt pos_weight | {thresh_mode}",
             output_path=EXPERIMENTS_CSV,
         )
 

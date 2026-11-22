@@ -6,7 +6,6 @@
 - Dữ liệu **tiếng Việt**, thuộc lĩnh vực **văn học**; tự crawl hoặc dùng dataset có sẵn.
 - Có đủ quy trình: **crawl → EDA → tiền xử lý → chuẩn hóa nhãn → xây dựng/huấn luyện mô hình → đánh giá → phân tích lỗi → ứng dụng**.
 - Dùng ít nhất **3 mô hình ML truyền thống** (`Multinomial Naive Bayes`, `Linear SVM`, `Logistic Regression`) và **1 mô hình Deep Learning** (`TextCNN`).
-- *Đã xác nhận với giảng viên:* được dùng sẵn nhãn thể loại có trên web và chuẩn hóa thành bộ nhãn thống nhất.
 - Có **ứng dụng** (`app/streamlit_app.py`) chạy trực quan để nhập tóm tắt và dự đoán đa nhãn.
 - Nộp: code trên **GitHub** (có mô tả + phân công từng thành viên), **báo cáo PDF** theo mẫu LMS (tỷ lệ trùng lặp < 25%), **slide**.
 - Hạn nộp: **2 ngày trước lịch thi**. Chấm: Chương trình 40%, Báo cáo 40%, Thuyết trình + QA 20%.
@@ -84,7 +83,7 @@ NLP_CUỐI KỲ/
 │   ├── slides.pdf
 │   └── demo_backup.mp4           # Video dự phòng
 │
-└── tests/                        # 20 unit tests (crawler_and_merge, preprocessing, metrics, models)
+└── tests/                        # 21 unit tests (crawler_and_merge, preprocessing, metrics, models)
 ```
 
 **Quy ước chung**
@@ -180,7 +179,7 @@ Gồm các cột của `stories.csv`, thêm:
 |---|---|---|
 | Bag-of-Words | `CountVectorizer` (1–2 gram, `10.000` chiều) | `Multinomial NB (BoW)` (`TN1`) |
 | TF-IDF | `TfidfVectorizer` (1–2 gram, `10.000` chiều, `sublinear_tf=True`) | `Multinomial NB`, `Linear SVM`, `Logistic Regression` (`TN2`–`TN4`) |
-| Word Embedding | `build_vocab` (`20.002`) + `PPMI-SVD` (`128` chiều, `max_len=200`) | `TextCNN` (`TN5`) |
+| Word Embedding | `build_vocab` (`20.002`) + `PPMI-SVD` (`128` chiều, `max_len=750`, Dynamic Padding theo batch) | `TextCNN` (`TN5`) |
 
 ### Bước 6. Xây dựng và huấn luyện mô hình (`notebooks/03_ml_baselines.ipynb`, `04_deep_learning.ipynb`)
 
@@ -211,7 +210,7 @@ Gồm các cột của `stories.csv`, thêm:
 ### Bước 8. Ứng dụng demo (`app/streamlit_app.py`)
 
 - Nhập đoạn tóm tắt truyện $\rightarrow$ làm sạch & suy luận đa nhãn bằng mô hình đã chọn (**Logistic Regression**, **Linear SVM**, **TextCNN**, **Multinomial NB**).
-- Hiển thị thể loại vượt ngưỡng, Top-K xác suất cao nhất, biểu đồ cột xác suất và bảng 22 nhãn.
+- Mặc định chế độ tự nhập văn bản mới; hiển thị toàn bộ thể loại đạt ngưỡng kèm xác suất, biểu đồ cột xác suất và bảng 22 nhãn.
 - Chuẩn bị video quay màn hình dự phòng tại `reports/demo_backup.mp4`.
 
 ### Bước 9. Báo cáo, slide, thuyết trình, nộp bài

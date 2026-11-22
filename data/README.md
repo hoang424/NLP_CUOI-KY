@@ -1,6 +1,6 @@
 # Tài liệu Dữ liệu & Nhật ký Thao tác trên Thư mục `data/`
 
-Tài liệu này mô tả chi tiết cấu trúc thư mục `data/`, bảng ánh xạ toàn bộ **42 chuyên mục thể loại gốc $\rightarrow$ 22 nhãn chuẩn**, quá trình tiền xử lý tiếng Việt và các bảng thống kê thực tế từ [webtruyen_raw.csv](file:///c:/Users/ACER/Downloads/NLP_CU%E1%BB%90I%20K%E1%BB%B2/data/raw/webtruyen_raw.csv) cho đồ án **NLP Đề 11: Phân loại thể loại truyện/văn học tiếng Việt**.
+Tài liệu này mô tả chi tiết cấu trúc thư mục `data/`, bảng ánh xạ toàn bộ **42 chuyên mục thể loại gốc $\rightarrow$ 22 nhãn chuẩn**, quá trình tiền xử lý tiếng Việt và các bảng thống kê thực tế từ [webtruyen_raw.csv](raw/webtruyen_raw.csv) cho đồ án **NLP Đề 11: Phân loại thể loại truyện/văn học tiếng Việt**.
 
 ---
 
@@ -30,10 +30,10 @@ data/
 ## 2. Lọc dữ liệu & Bảng ánh xạ 42 thể loại gốc $\rightarrow$ 22 nhãn chuẩn
 
 ### 2.1. Kết quả cào & lọc từ `webtruyen_raw.csv` (`src/crawl/crawler.py`, `src/crawl/merge_data.py` & `notebooks/01_eda.ipynb`)
-1. **Cào toàn bộ 42 chuyên mục (`crawl_webtruyen`):** Duyệt hết **2.269 trang** thuộc 42 thẻ thể loại trên `wetruyen.com` (đích chuyển hướng của `webtruyen.vn`), giữ nguyên bản ghi thô theo từng thẻ (`category_crawled`), thu được **`55.684` bản ghi thô** (`12` cột) vào [webtruyen_raw.csv](file:///c:/Users/ACER/Downloads/NLP_CU%E1%BB%90I%20K%E1%BB%B2/data/raw/webtruyen_raw.csv).
+1. **Cào toàn bộ 42 chuyên mục (`crawl_webtruyen`):** Duyệt hết **2.269 trang** thuộc 42 thẻ thể loại trên `wetruyen.com` (đích chuyển hướng của `webtruyen.vn`), giữ nguyên bản ghi thô theo từng thẻ (`category_crawled`), thu được **`55.684` bản ghi thô** (`12` cột) vào [webtruyen_raw.csv](raw/webtruyen_raw.csv).
 2. **Loại truyện trùng tên & trùng văn án (`deduplicate_stories`):** Gom các bản ghi trùng `title` (chuẩn hóa chữ thường, NFC, khoảng trắng) và trùng `summary`, đồng thời **gộp toàn bộ thẻ `genres_raw` bằng `|`**, thu được **`18.621` truyện duy nhất** (loại `37.063` bản ghi trùng giữa các thẻ; vượt ngưỡng cấu hình `MIN_SUMMARY_WORDS = 10` từ, độ dài thực tế ngắn nhất là `15` từ).
-3. **Chuẩn hóa 22 nhãn (`GENRE_MAPPING` & `NON_GENRE_TAGS` từ [src/crawl/sources.py](file:///c:/Users/ACER/Downloads/NLP_CU%E1%BB%90I%20K%E1%BB%B2/src/crawl/sources.py)):** Tách riêng các thể loại giàu dữ liệu (`đam mỹ`, `bách hợp`, `linh dị`, `võng du`, `trinh thám`, `cung đấu / gia đấu`, `sủng`, `ngược`) và gộp một số thẻ gần nghĩa/ít mẫu (`khoa huyễn / mạt thế / dị năng`, `ngôn tình / nữ phụ / tổng tài`, `cổ đại / đông phương`, `đô thị / hiện đại / truyện teen`, `huyền huyễn / dị giới / thám hiểm / light novel`, `lịch sử / quân sự / dã sử`, `xuyên không / xuyên nhanh`). Chỉ loại **`18` truyện** không còn nhãn hợp lệ (chỉ gắn các thẻ bị loại: `Khác`, `Đoản Văn`, `Tiểu Thuyết`, `Phương Tây`, `Quan Trường`, `Việt Nam`), giữ lại **`18.603 / 18.621` (`99.90%`) truyện hợp lệ**.
-4. Sinh mã `ST_0001` $\rightarrow$ `ST_18603`, cột `genres`, `n_labels`, `n_words` cùng **22 cột one-hot `label_*`**, lưu ra [stories.csv](file:///c:/Users/ACER/Downloads/NLP_CU%E1%BB%90I%20K%E1%BB%B2/data/processed/stories.csv) (`18.603` dòng × `36` cột).
+3. **Chuẩn hóa 22 nhãn (`GENRE_MAPPING` & `NON_GENRE_TAGS` từ [src/crawl/sources.py](../src/crawl/sources.py)):** Tách riêng các thể loại giàu dữ liệu (`đam mỹ`, `bách hợp`, `linh dị`, `võng du`, `trinh thám`, `cung đấu / gia đấu`, `sủng`, `ngược`) và gộp một số thẻ gần nghĩa/ít mẫu (`khoa huyễn / mạt thế / dị năng`, `ngôn tình / nữ phụ / tổng tài`, `cổ đại / đông phương`, `đô thị / hiện đại / truyện teen`, `huyền huyễn / dị giới / thám hiểm / light novel`, `lịch sử / quân sự / dã sử`, `xuyên không / xuyên nhanh`). Chỉ loại **`18` truyện** không còn nhãn hợp lệ (chỉ gắn các thẻ bị loại: `Khác`, `Đoản Văn`, `Tiểu Thuyết`, `Phương Tây`, `Quan Trường`, `Việt Nam`), giữ lại **`18.603 / 18.621` (`99.90%`) truyện hợp lệ**.
+4. Sinh mã `ST_0001` $\rightarrow$ `ST_18603`, cột `genres`, `n_labels`, `n_words` cùng **22 cột one-hot `label_*`**, lưu ra [stories.csv](processed/stories.csv) (`18.603` dòng × `36` cột).
 
 ### 2.2. Bảng ánh xạ đầy đủ 42 chuyên mục thể loại gốc trên `webtruyen.vn` (`18.621` truyện duy nhất)
 
@@ -87,9 +87,9 @@ data/
 ## 3. Tiền xử lý tiếng Việt & Chia tập (`data/processed/stories_clean.csv`)
 
 1. **Làm sạch & chống rò rỉ nhãn (`clean.py`, `leakage.py`):** Chuẩn hóa Unicode NFC, giải mã HTML, bỏ URL/thẻ HTML/ký tự đặc biệt, cắt cụm header `"Thể loại: ... Văn án:"` và xóa từ khóa chuyên biệt trong `LEAKAGE_KEYWORDS` (không xóa từ đơn thông thường như `"sủng"`, `"ngược"`).
-2. **Tách từ & lọc stopwords (`tokenizer.py`):** Tách từ bằng **`underthesea`**, loại bỏ **120 từ dừng** trong [vietnamese_stopwords.txt](file:///c:/Users/ACER/Downloads/NLP_CU%E1%BB%90I%20K%E1%BB%B2/data/stopwords/vietnamese_stopwords.txt).
+2. **Tách từ & lọc stopwords (`tokenizer.py`):** Tách từ bằng **`underthesea`**, loại bỏ **120 từ dừng** trong [vietnamese_stopwords.txt](stopwords/vietnamese_stopwords.txt).
 3. **Chia tập phân tầng đa nhãn (`70% / 15% / 15%`, `IterativeStratification`, `RANDOM_STATE = 42`):**
-   - `train`: **`13.297`** mẫu (`71.48%`) | `val`: **`2.634`** mẫu (`14.16%`) | `test`: **`2.672`** mẫu (`14.36%`), lưu tại [stories_clean.csv](file:///c:/Users/ACER/Downloads/NLP_CU%E1%BB%90I%20K%E1%BB%B2/data/processed/stories_clean.csv) (`18.603` dòng × `39` cột; `0` ô rỗng ở `split`, `1` mẫu `ST_12710` thuộc `train` bị rỗng `summary_clean`/`tokens` do toàn bộ đoạn nằm trong cụm header `"Thể loại:"`).
+   - `train`: **`13.297`** mẫu (`71.48%`) | `val`: **`2.634`** mẫu (`14.16%`) | `test`: **`2.672`** mẫu (`14.36%`), lưu tại [stories_clean.csv](processed/stories_clean.csv) (`18.603` dòng × `39` cột; `0` ô rỗng ở `split`, `1` mẫu `ST_12710` thuộc `train` bị rỗng `summary_clean`/`tokens` do toàn bộ đoạn nằm trong cụm header `"Thể loại:"`).
 
 ---
 

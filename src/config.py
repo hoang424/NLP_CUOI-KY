@@ -32,6 +32,7 @@ TEST_RATIO: float = 0.15
 MIN_SUMMARY_WORDS: int = 10
 MIN_SAMPLES_PER_LABEL: int = 5
 DEFAULT_THRESHOLD: float = 0.5
+TEXTCNN_MAX_LEN: int = 750
 
 # Danh sách 22 nhãn thể loại chuẩn
 GENRE_LABELS: list[str] = [

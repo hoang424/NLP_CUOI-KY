@@ -1,7 +1,7 @@
 # Báo cáo Kết quả Phần 1: Thu thập dữ liệu, Chuẩn hóa nhãn & EDA — _TV1_
 
 - **Phụ trách:** Thành viên 1 (`feat/crawl-eda`)
-- **Trạng thái:** **Đã ánh xạ lại toàn bộ 42 thẻ gốc $\rightarrow$ 22 nhãn chuẩn cân bằng và chạy xong [01_eda.ipynb](file:///c:/Users/ACER/Downloads/NLP_CU%E1%BB%90I%20K%E1%BB%B2/notebooks/01_eda.ipynb) trên toàn bộ tập dữ liệu `webtruyen.vn` (`18.603` truyện hợp lệ).**
+- **Trạng thái:** **Đã ánh xạ lại toàn bộ 42 thẻ gốc $\rightarrow$ 22 nhãn chuẩn cân bằng và chạy xong [01_eda.ipynb](../notebooks/01_eda.ipynb) trên toàn bộ tập dữ liệu `webtruyen.vn` (`18.603` truyện hợp lệ).**
 
 ---
 
@@ -14,8 +14,8 @@ Tận dụng quy mô `18.621` truyện duy nhất sau khi cào đủ 42 chuyên 
 - **Loại bỏ 6 thẻ (`NON_GENRE_TAGS`):** `khác` (`2.144`), `đoản văn` (`983`), `tiểu thuyết` (`584`), `phương tây` (`54`), `quan trường` (`36`), `việt nam` (`5`).
 
 ### 1.2. Kết quả lọc & xuất `stories.csv` (`src/crawl/merge_data.py`, `notebooks/01_eda.ipynb`)
-- Từ **`55.684` bản ghi thô** (cào đủ 42 chuyên mục × 2.269 trang trong [webtruyen_raw.csv](file:///c:/Users/ACER/Downloads/NLP_CU%E1%BB%90I%20K%E1%BB%B2/data/raw/webtruyen_raw.csv)), `deduplicate_stories()` loại trùng `title` + `summary` kèm gộp thẻ thu được **`18.621` truyện duy nhất** (loại `37.063` bản ghi trùng).
-- Chỉ loại **`18` bản ghi** không còn nhãn hợp lệ trong 22 nhãn, giữ lại **`18.603 / 18.621` (`99.90%`) truyện hợp lệ**, xuất ra [stories.csv](file:///c:/Users/ACER/Downloads/NLP_CU%E1%BB%90I%20K%E1%BB%B2/data/processed/stories.csv) (`18.603` dòng × `36` cột) và biểu đồ [eda_overview.png](file:///c:/Users/ACER/Downloads/NLP_CU%E1%BB%90I%20K%E1%BB%B2/outputs/figures/eda_overview.png).
+- Từ **`55.684` bản ghi thô** (cào đủ 42 chuyên mục × 2.269 trang trong [webtruyen_raw.csv](../data/raw/webtruyen_raw.csv)), `deduplicate_stories()` loại trùng `title` + `summary` kèm gộp thẻ thu được **`18.621` truyện duy nhất** (loại `37.063` bản ghi trùng).
+- Chỉ loại **`18` bản ghi** không còn nhãn hợp lệ trong 22 nhãn, giữ lại **`18.603 / 18.621` (`99.90%`) truyện hợp lệ**, xuất ra [stories.csv](../data/processed/stories.csv) (`18.603` dòng × `36` cột) và biểu đồ [eda_overview.png](../outputs/figures/eda_overview.png).
 
 ---
 
@@ -51,4 +51,4 @@ Tận dụng quy mô `18.621` truyện duy nhất sau khi cào đủ 42 chuyên 
 | `vong_du` | Võng du / Game | 148 | 0.80% | 222.6 |
 
 - **Các cặp nhãn đồng xuất hiện nhiều nhất (`22×22`):** (`ngon_tinh`, `sung`): `3.055`; (`ngon_tinh`, `hien_dai`): `3.037`; (`ngon_tinh`, `co_dai`): `2.867`; (`co_dai`, `nu_cuong`): `2.167`; (`hien_dai`, `sung`): `1.881`; (`ngon_tinh`, `nu_cuong`): `1.737`; (`co_dai`, `cung_dau_gia_dau`): `1.543`; (`dam_my`, `sung`): `1.183`.
-- **Unit tests ([tests/test_crawler_and_merge.py](file:///c:/Users/ACER/Downloads/NLP_CU%E1%BB%90I%20K%E1%BB%B2/tests/test_crawler_and_merge.py)):** **4/4 PASS**.
+- **Unit tests ([tests/test_crawler_and_merge.py](../tests/test_crawler_and_merge.py)):** **4/4 PASS**.

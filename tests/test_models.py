@@ -7,12 +7,20 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from src.features.embedding import build_corpus_embeddings, build_vocab, texts_to_sequences
+from src.features.embedding import (
+    build_corpus_embeddings,
+    build_vocab,
+    estimate_dynamic_pad_ratio,
+    make_dynamic_dataloader,
+    texts_to_id_lists,
+    texts_to_sequences,
+)
 from src.models.ml_models import get_all_tfidf_models
 from src.models.textcnn import (
     TextCNNClassifier,
     compute_pos_weights,
     load_textcnn_checkpoint,
+    predict_torch_probs,
     save_textcnn_checkpoint,
 )
 
@@ -83,6 +91,67 @@ class TestModels(unittest.TestCase):
             self.assertEqual(bundle["max_len"], 16)
             self.assertEqual(bundle["vocab"], vocab)
             self.assertEqual(bundle["thresholds"], [0.5, 0.4, 0.45])
+
+    def test_dynamic_dataloader_bucketing_and_order(self) -> None:
+        texts = [
+            "a b",
+            "a b c d e f g h i j",
+            "",
+            "c d e",
+            "a c e g i",
+            "b d f h",
+            "a",
+        ]
+        vocab = build_vocab(texts, min_freq=1, max_vocab_size=50)
+        id_lists = texts_to_id_lists(texts, vocab, max_len=6)
+        self.assertEqual(max(len(seq) for seq in id_lists), 6)
+
+        y = np.eye(len(texts), 3, dtype=np.float32)
+        train_loader = make_dynamic_dataloader(
+            id_lists,
+            labels=y,
+            batch_size=3,
+            shuffle=True,
+            min_len=4,
+            seed=42,
+            bucket_mult=2,
+        )
+        batches_seen = list(train_loader)
+        self.assertEqual(len(batches_seen), len(train_loader))
+        self.assertEqual(sum(x.size(0) for x, _ in batches_seen), len(texts))
+        for x_b, y_b in batches_seen:
+            self.assertGreaterEqual(x_b.size(1), 4)
+            self.assertLessEqual(x_b.size(1), 6)
+            self.assertEqual(x_b.size(0), y_b.size(0))
+
+        # Bảo toàn thứ tự mẫu gốc khi shuffle=False và tương thích predict_torch_probs
+        eval_loader = make_dynamic_dataloader(
+            id_lists,
+            labels=None,
+            batch_size=3,
+            shuffle=False,
+            min_len=4,
+        )
+        eval_batches = list(eval_loader)
+        self.assertEqual(len(eval_batches), len(eval_loader))
+        first_x = eval_batches[0][0]
+        self.assertEqual(first_x[0, :2].tolist(), id_lists[0])
+        self.assertTrue((first_x[2] == 0).all())
+
+        model = TextCNNClassifier(
+            vocab_size=len(vocab),
+            num_classes=3,
+            embedding_dim=8,
+            num_filters=4,
+            kernel_sizes=(2, 3, 4),
+        )
+        probs = predict_torch_probs(model, eval_loader, device="cpu")
+        self.assertEqual(probs.shape, (len(texts), 3))
+        self.assertTrue(np.isfinite(probs).all())
+
+        pad_ratio = estimate_dynamic_pad_ratio(id_lists, batch_size=3, min_len=4, bucketed=True)
+        self.assertGreaterEqual(pad_ratio, 0.0)
+        self.assertLess(pad_ratio, 1.0)
 
 
 if __name__ == "__main__":

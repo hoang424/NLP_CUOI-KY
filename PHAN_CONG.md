@@ -77,7 +77,7 @@ Tài liệu này quy định phạm vi công việc, hợp đồng dữ liệu �
 
 **Chi tiết thực hiện:**
 - Sử dụng `OneVsRestClassifier` bọc `MultinomialNB`, `LinearSVC` và `LogisticRegression` (cố định `RANDOM_STATE = 42` từ `src/config.py`).
-- Chuẩn hóa điểm quyết định của `LinearSVC` qua sigmoid để tương thích ngưỡng quyết định và giao diện xác suất Top-K trên Streamlit.
+- Chuẩn hóa điểm quyết định của `LinearSVC` qua sigmoid để tương thích ngưỡng quyết định và giao diện hiển thị xác suất và toàn bộ thể loại đạt ngưỡng trên Streamlit.
 - Đọc đúng cột `split` từ `stories_clean.csv`, không tự chia lại dữ liệu.
 
 **Bàn giao:**
@@ -117,5 +117,5 @@ Tài liệu này quy định phạm vi công việc, hợp đồng dữ liệu �
 ## Quy ước phối hợp & Kiểm thử tích hợp
 
 1. Mọi hằng số (`RANDOM_STATE = 42`, đường dẫn, `GENRE_LABELS`, `TFIDF_PARAMS`) lấy từ `src/config.py`.
-2. Trước khi tạo Pull Request vào `main`, mỗi thành viên tự chạy `.\.venv\Scripts\python.exe -m pytest tests/ -v` (`20 tests`).
+2. Trước khi tạo Pull Request vào `main`, mỗi thành viên tự chạy `.\.venv\Scripts\python.exe -m pytest tests/ -v` (`21 tests`).
 3. Trước buổi bảo vệ, kiểm tra toàn bộ pipeline và giao diện `.\.venv\Scripts\streamlit.exe run app/streamlit_app.py`.

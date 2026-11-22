@@ -188,7 +188,7 @@ def plot_multilabel_confusion_matrices(
     model_name: str = "Best ML Model",
     output_path: Path = FIGURES_DIR / "ml_confusion_matrices.png",
 ) -> Path | None:
-    """Vẽ lưới ma trận nhầm lẫn nhị phân (2x5) cho tất cả nhãn thể loại."""
+    """Vẽ lưới ma trận nhầm lẫn nhị phân (tự động chia cột/hàng) cho tất cả nhãn thể loại."""
     if plt is None:
         return None
 
