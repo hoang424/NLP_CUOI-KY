@@ -1,0 +1,26 @@
+{
+  "TN5_textcnn": {
+    "ngon_tinh": 0.15,
+    "dam_my": 0.49,
+    "bach_hop": 0.33,
+    "tien_hiep": 0.65,
+    "kiem_hiep": 0.47,
+    "huyen_huyen": 0.49,
+    "linh_di": 0.47,
+    "khoa_huyen_mat_the": 0.5,
+    "vong_du": 0.51,
+    "trinh_tham": 0.38,
+    "dien_van": 0.44,
+    "lich_su_quan_su": 0.19,
+    "co_dai": 0.33,
+    "hien_dai": 0.38,
+    "cung_dau_gia_dau": 0.53,
+    "xuyen_khong": 0.48,
+    "trong_sinh": 0.61,
+    "he_thong": 0.42,
+    "nu_cuong": 0.29,
+    "sung": 0.17,
+    "nguoc": 0.24,
+    "hai_huoc": 0.21
+  }
+}

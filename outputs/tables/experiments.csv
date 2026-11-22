@@ -1,0 +1,6 @@
+experiment_id,model_name,feature_type,accuracy,macro_f1,micro_f1,hamming_loss,notes
+TN1_nb_bow,Multinomial NB (BoW),BoW (1-2 gram),0.0603,0.4319,0.5641,0.13,Test set (2672 mẫu) | alpha=0.1 | tuned_thresholds
+TN2_multinomial_nb,Multinomial NB (TF-IDF),TF-IDF (1-2 gram),0.0584,0.4031,0.5877,0.1207,Test set (2672 mẫu) | alpha=0.05 | tuned_thresholds
+TN3_linear_svm,Linear SVM (TF-IDF),TF-IDF (1-2 gram),0.0618,0.4767,0.6006,0.1193,"Test set (2672 mẫu) | C=0.25, cw=balanced | tuned_thresholds"
+TN4_logistic_regression,Logistic Regression (TF-IDF),TF-IDF (1-2 gram),0.0561,0.4897,0.6035,0.123,"Test set (2672 mẫu) | C=1.0, cw=balanced | tuned_thresholds"
+TN5_textcnn,TextCNN (Word Embedding),PPMI-SVD Emb + Multi-scale CNN (max_len=200),0.0423,0.4381,0.5742,0.1383,"Test set (2672 mẫu) | TextCNN (k=2,3,4; f=64; emb=128 PPMI-SVD) + sqrt pos_weight | tuned_thresholds"
