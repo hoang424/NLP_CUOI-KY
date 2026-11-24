@@ -21,9 +21,8 @@ models/*.bin
 models/*.safetensors
 !models/.gitkeep
 
-# Raw / large temporary data (keep sample processed CSV & .gitkeep)
-data/raw/*
-!data/raw/.gitkeep
+# Raw data (đóng gói sẵn để tái tạo đầy đủ từ 01_eda.ipynb; chỉ chặn file cache tạm & labeled lớn)
+data/raw/*.story_cache.jsonl
 data/labeled/*
 !data/labeled/.gitkeep
 
