@@ -1,4 +1,4 @@
-"""Công cụ crawl dữ liệu truyện/sách từ webnovel.vn, metruyenchu, webtruyen (wetruyen.com) và Wiki."""
+"""Công cụ crawl dữ liệu truyện từ webnovel.vn, webtruyen.vn, truyenfull.live và metruyenchu.com.vn."""
 
 from __future__ import annotations
 
@@ -27,43 +27,10 @@ try:
 except ImportError:  # pragma: no cover
     BeautifulSoup = None
 
+WEBNOVEL_SITEMAP_INDEX_URL = "https://webnovel.vn/sitemap.xml"
 WEBNOVEL_SITEMAP_URL = "https://webnovel.vn/sitemap/stories/sitemap_story_0.xml.gz"
-WEBNOVEL_ALL_URL_TEMPLATE = "https://webnovel.vn/all/?page={page}"
+WEBNOVEL_ALL_URL_TEMPLATE = "https://webnovel.vn/all/{page}/"
 DISALLOWED_PREFIXES = ("/pub/", "/app/", "/blog/")
-
-METRUYENCHU_BASE = "https://metruyenchu.com.vn"
-METRUYENCHU_CATEGORIES: list[str] = [
-    "lich-su",
-    "quan-su",
-    "quan-truong",
-    "cung-dau",
-    "gia-dau",
-    "dong-phuong",
-    "dien-van",
-    "trong-sinh",
-    "xuyen-khong",
-    "tien-hiep",
-    "kiem-hiep",
-    "huyen-huyen",
-    "he-thong",
-    "ngon-tinh",
-    "do-thi",
-    "hien-dai",
-]
-METRUYENCHU_SKIP_PATHS = (
-    "/the-loai",
-    "/danh-sach",
-    "/tac-gia",
-    "/cdn-cgi",
-    "/tim-kiem",
-    "/lien-he",
-    "/gioi-thieu",
-)
-METRUYENCHU_SEO_PREFIX_RE = re.compile(
-    r"^(?:MeTruyenChu vừa cập nhật bộ truyện mới .*? mới này\.|"
-    r"Bộ truyện full .*? đăng tải mỗi ngày\.)",
-    flags=re.IGNORECASE | re.DOTALL,
-)
 
 # Đích chuyển hướng chính thức của webtruyen.vn và dtruyen.com
 WEBTRUYEN_BASE = "https://wetruyen.com"
@@ -118,23 +85,74 @@ WEBTRUYEN_SYSTEM_SLUGS: set[str] = {
     "truyen-moi-dang",
 }
 
-WIKI_LITERATURE_CATEGORIES: list[tuple[str, str, str, str]] = [
-    ("https://vi.wikipedia.org/w/api.php", "wikipedia.org", "Thể loại:Tiểu thuyết lịch sử", "Lịch Sử|Cổ Đại"),
-    ("https://vi.wikipedia.org/w/api.php", "wikipedia.org", "Thể loại:Tác phẩm văn học Việt Nam", "Lịch Sử"),
-    ("https://vi.wikipedia.org/w/api.php", "wikipedia.org", "Thể loại:Sử thi Việt Nam", "Lịch Sử|Cổ Đại"),
-    ("https://vi.wikipedia.org/w/api.php", "wikipedia.org", "Thể loại:Truyện thơ Nôm", "Cổ Đại|Ngôn Tình"),
-    ("https://vi.wikipedia.org/w/api.php", "wikipedia.org", "Thể loại:Tiểu thuyết Trung Quốc", "Cổ Đại|Lịch Sử"),
-    ("https://vi.wikipedia.org/w/api.php", "wikipedia.org", "Thể loại:Tiểu thuyết Kim Dung", "Tiên Hiệp|Kiếm Hiệp|Cổ Đại"),
-    ("https://vi.wikipedia.org/w/api.php", "wikipedia.org", "Thể loại:Tiểu thuyết Việt Nam", "Hiện Đại|Lịch Sử"),
-    ("https://vi.wikipedia.org/w/api.php", "wikipedia.org", "Thể loại:Truyện ngắn Việt Nam", "Hiện Đại"),
-    ("https://vi.wikipedia.org/w/api.php", "wikipedia.org", "Thể loại:Tiểu thuyết lãng mạn", "Ngôn Tình"),
-    ("https://vi.wikipedia.org/w/api.php", "wikipedia.org", "Thể loại:Tiểu thuyết khoa học viễn tưởng", "Huyền Huyễn|Khoa Huyễn"),
-    ("https://vi.wikipedia.org/w/api.php", "wikipedia.org", "Thể loại:Sách tự lực", "Phát triển bản thân"),
-    ("https://vi.wikipedia.org/w/api.php", "wikipedia.org", "Thể loại:Sách kinh doanh", "Kinh doanh"),
-    ("https://vi.wikisource.org/w/api.php", "wikisource.org", "Thể loại:Tiểu thuyết", "Lịch Sử|Cổ Đại"),
-    ("https://vi.wikisource.org/w/api.php", "wikisource.org", "Thể loại:Truyện ngắn", "Hiện Đại"),
-    ("https://vi.wikisource.org/w/api.php", "wikisource.org", "Thể loại:Truyện cổ tích", "Cổ Đại|Huyền Huyễn"),
-    ("https://vi.wikisource.org/w/api.php", "wikisource.org", "Thể loại:Truyện kiếm hiệp", "Tiên Hiệp|Kiếm Hiệp|Cổ Đại"),
+METRUYENCHU_BASE = "https://metruyenchu.com.vn"
+METRUYENCHU_CATEGORIES: list[str] = [
+    "tien-hiep",
+    "kiem-hiep",
+    "ngon-tinh",
+    "dam-my",
+    "bach-hop",
+    "quan-truong",
+    "vong-du",
+    "khoa-huyen",
+    "he-thong",
+    "huyen-huyen",
+    "di-gioi",
+    "di-nang",
+    "quan-su",
+    "lich-su",
+    "xuyen-khong",
+    "xuyen-nhanh",
+    "trong-sinh",
+    "trinh-tham",
+    "linh-di",
+    "nguoc",
+    "sac",
+    "sung",
+    "cung-dau",
+    "nu-cuong",
+    "gia-dau",
+    "dong-phuong",
+    "do-thi",
+    "dien-van",
+    "mat-the",
+    "truyen-teen",
+    "nu-phu",
+    "light-novel",
+    "doan-van",
+    "hien-dai",
+    "khac",
+    "action",
+    "fantasy",
+    "adventure",
+]
+METRUYENCHU_SKIP_PATHS = (
+    "/the-loai",
+    "/danh-sach",
+    "/tac-gia",
+    "/cdn-cgi",
+    "/tim-kiem",
+    "/lien-he",
+    "/gioi-thieu",
+)
+METRUYENCHU_SEO_PREFIX_RE = re.compile(
+    r"^(?:MeTruyenChu vừa cập nhật bộ truyện mới .*? mới này\.|"
+    r"Bộ truyện full .*? đăng tải mỗi ngày\.)",
+    flags=re.IGNORECASE | re.DOTALL,
+)
+
+TRUYENFULL_BASE = "https://truyenfull.live"
+TRUYENFULL_RARE_CATEGORIES: list[tuple[str, str, int | None]] = [
+    ("tham-hiem", "Thám Hiểm", None),
+    ("quan-truong", "Quan Trường", None),
+    ("quan-su", "Quân Sự", None),
+    ("lich-su", "Lịch Sử", None),
+    ("nu-phu", "Nữ Phụ", 12),
+    ("vong-du", "Võng Du", None),
+    ("truyen-teen", "Truyện Teen", 12),
+    ("khoa-huyen", "Khoa Huyễn", 8),
+    ("mat-the", "Mạt Thế", 8),
+    ("trinh-tham", "Trinh Thám", 8),
 ]
 
 DEFAULT_HEADERS: dict[str, str] = {
@@ -143,11 +161,6 @@ DEFAULT_HEADERS: dict[str, str] = {
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     ),
     "Accept-Language": "vi-VN,vi;q=0.9,en;q=0.8",
-}
-
-WIKI_HEADERS: dict[str, str] = {
-    "User-Agent": "NLP-DoAn-De11-VietnameseLiteratureBot/1.0 (educational NLP coursework)",
-    "Accept": "application/json",
 }
 
 RAW_ORDERED_COLS: list[str] = [
@@ -308,41 +321,98 @@ def _is_valid_webnovel_url(url: str) -> bool:
     path = parsed.path or "/"
     if path in ("/", "/all/", "/sach-hay/", "/truyen-full/", "/truyen-moi-dang/"):
         return False
+    if re.match(r"^/all/\d+/?$", path):
+        return False
     if path.startswith(DISALLOWED_PREFIXES) or "/chuong-" in path:
         return False
     return True
 
 
-def discover_webnovel_story_urls(
-    session: requests.Session | None = None,
-    max_all_pages: int = 5,
-) -> list[str]:
-    """Thu thập toàn bộ URL trang truyện từ sitemap chính thức và danh sách /all/."""
-    client = session or build_session()
-    discovered: set[str] = set()
+def _fetch_webnovel_sitemap_story_urls(client: requests.Session) -> list[str]:
+    """Đọc toàn bộ sitemap truyện từ sitemap index của webnovel.vn (fallback sitemap_story_0)."""
+    story_sitemaps: list[str] = []
+    try:
+        idx_resp = client.get(WEBNOVEL_SITEMAP_INDEX_URL, headers=DEFAULT_HEADERS, timeout=20)
+        if idx_resp.status_code == 200:
+            idx_bytes = (
+                gzip.decompress(idx_resp.content)
+                if idx_resp.content[:2] == b"\x1f\x8b"
+                else idx_resp.content
+            )
+            idx_root = ET.fromstring(idx_bytes)
+            for elem in idx_root.iter():
+                if elem.tag.endswith("loc") and elem.text:
+                    loc = elem.text.strip()
+                    if "/sitemap/stories/" in loc or "sitemap_story_" in loc:
+                        story_sitemaps.append(loc)
+    except Exception:
+        pass
 
-    resp = client.get(WEBNOVEL_SITEMAP_URL, timeout=20)
-    resp.raise_for_status()
-    xml_bytes = gzip.decompress(resp.content) if resp.content[:2] == b"\x1f\x8b" else resp.content
-    root = ET.fromstring(xml_bytes)
-    for elem in root.iter():
-        if elem.tag.endswith("loc") and elem.text:
-            url = elem.text.strip()
-            if _is_valid_webnovel_url(url):
-                discovered.add(url)
+    if not story_sitemaps:
+        story_sitemaps = [WEBNOVEL_SITEMAP_URL]
 
-    for page in range(1, max_all_pages + 1):
-        list_url = "https://webnovel.vn/all/" if page == 1 else WEBNOVEL_ALL_URL_TEMPLATE.format(page=page)
+    found: list[str] = []
+    for sm_url in story_sitemaps:
         try:
-            html = fetch_page(list_url, delay=0.2, session=client)
-            doc = lxml.html.fromstring(html)
-            for card in doc.find_class("catx-card"):
-                for href in card.xpath(".//a/@href"):
-                    href = href.strip()
-                    if _is_valid_webnovel_url(href):
-                        discovered.add(href)
+            resp = client.get(sm_url, headers=DEFAULT_HEADERS, timeout=20)
+            resp.raise_for_status()
+            xml_bytes = (
+                gzip.decompress(resp.content)
+                if resp.content[:2] == b"\x1f\x8b"
+                else resp.content
+            )
+            root = ET.fromstring(xml_bytes)
+            for elem in root.iter():
+                if elem.tag.endswith("loc") and elem.text:
+                    url = elem.text.strip()
+                    if _is_valid_webnovel_url(url):
+                        found.append(url)
         except Exception:
             continue
+    return found
+
+
+def discover_webnovel_story_urls(
+    session: requests.Session | None = None,
+    max_all_pages: int | None = None,
+) -> list[str]:
+    """Thu thập toàn bộ URL trang truyện từ sitemap chính thức và các trang danh sách /all/."""
+    client = session or build_session()
+    discovered: set[str] = set(_fetch_webnovel_sitemap_story_urls(client))
+
+    seen_in_all: set[str] = set()
+    page = 1
+    while max_all_pages is None or page <= max_all_pages:
+        list_url = (
+            "https://webnovel.vn/all/"
+            if page == 1
+            else WEBNOVEL_ALL_URL_TEMPLATE.format(page=page)
+        )
+        try:
+            if page > 1:
+                time.sleep(0.2)
+            resp = client.get(list_url, headers=DEFAULT_HEADERS, timeout=20)
+            if resp.status_code != 200:
+                break
+            resp.encoding = resp.apparent_encoding or "utf-8"
+            doc = lxml.html.fromstring(resp.text)
+            cards = doc.find_class("catx-card")
+            if not cards:
+                break
+            page_urls: set[str] = set()
+            for card in cards:
+                for href in card.xpath(".//a/@href"):
+                    href = urljoin("https://webnovel.vn/", str(href).strip())
+                    if _is_valid_webnovel_url(href):
+                        page_urls.add(href)
+            new_urls = page_urls - seen_in_all
+            if not new_urls:
+                break
+            seen_in_all.update(new_urls)
+            discovered.update(new_urls)
+        except Exception:
+            break
+        page += 1
 
     return sorted(discovered)
 
@@ -416,14 +486,20 @@ def parse_webnovel_story_html(html: str, url: str) -> dict[str, Any]:
             else _clean_whitespace(str(ld_info.get("description", "")))
         )
 
+    stat_texts = [_clean_whitespace(el.text_content()) for el in stat_els if _clean_whitespace(el.text_content())]
+    chapters = next((t for t in stat_texts if "chương" in t.lower()), "")
+    rating = str(ld_info.get("rating", "")).strip()
+    if not rating:
+        rating = next((t for t in stat_texts if re.fullmatch(r"\d+(?:\.\d+)?", t)), "")
+
     return {
         "title": title,
         "author": author,
         "summary": summary,
         "genres_raw": "|".join(genres),
         "status": _clean_whitespace(status_els[0].text_content()) if status_els else "",
-        "chapters": _clean_whitespace(stat_els[0].text_content()) if stat_els else "",
-        "rating": str(ld_info.get("rating", "")),
+        "chapters": chapters,
+        "rating": rating,
         "url": url,
         "source": "webnovel.vn",
         "crawl_date": date.today().isoformat(),
@@ -436,10 +512,11 @@ def crawl_all_webnovel(
     label_studio_json: Path = DATA_LABELED_DIR / "webnovel_label_studio.json",
     max_workers: int = 6,
     delay_per_request: float = 0.15,
+    max_all_pages: int | None = None,
 ) -> pd.DataFrame:
-    """Crawl toàn bộ truyện từ sitemap webnovel.vn và lưu ra data/raw + data/labeled."""
+    """Crawl toàn bộ truyện từ sitemap và /all/ của webnovel.vn rồi lưu ra data/raw + data/labeled."""
     session = build_session(pool_maxsize=max_workers + 2)
-    urls = discover_webnovel_story_urls(session=session)
+    urls = discover_webnovel_story_urls(session=session, max_all_pages=max_all_pages)
     print(f"[webnovel.vn] Phát hiện {len(urls)} URL truyện hợp lệ.")
 
     def _worker(target_url: str) -> dict[str, Any]:
@@ -453,94 +530,7 @@ def crawl_all_webnovel(
 
 
 # =====================================================================
-# 2. METRUYENCHU.COM.VN
-# =====================================================================
-
-
-def parse_metruyenchu_story_html(
-    html: str,
-    url: str,
-    min_summary_words: int = 15,
-) -> dict[str, Any] | None:
-    """Trích xuất truyện từ metruyenchu.com.vn, bỏ đoạn SEO mẫu nếu không có văn án thật."""
-    doc = lxml.html.fromstring(html)
-    h1_els = doc.xpath("//h1")
-    author_els = doc.xpath('//a[@itemprop="author"]')
-    genre_els = doc.xpath('//li[contains(@class, "genres")]//a')
-    scroll_els = doc.find_class("scrolltext")
-
-    title = _clean_whitespace(h1_els[0].text_content()) if h1_els else ""
-    author = _clean_whitespace(author_els[0].text_content()) if author_els else ""
-    genres = []
-    for a_el in genre_els:
-        g = _clean_whitespace(a_el.text_content())
-        if g and g not in genres:
-            genres.append(g)
-
-    raw_summary = _block_text(scroll_els[0]) if scroll_els else ""
-    summary = METRUYENCHU_SEO_PREFIX_RE.sub("", raw_summary).strip()
-    summary = re.sub(r"^Giới thiệu nội dung\s*:?\s*", "", summary, flags=re.IGNORECASE).strip()
-
-    if not title or not genres or len(summary.split()) < min_summary_words:
-        return None
-
-    return {
-        "title": title,
-        "author": author,
-        "summary": summary,
-        "genres_raw": "|".join(genres),
-        "status": "",
-        "chapters": "",
-        "rating": "",
-        "url": url,
-        "source": "metruyenchu.com.vn",
-        "crawl_date": date.today().isoformat(),
-    }
-
-
-def crawl_metruyenchu(
-    output_csv: Path = DATA_RAW_DIR / "metruyenchu_raw.csv",
-    max_pages_per_cat: int = 10,
-    max_workers: int = 10,
-    delay_per_request: float = 0.05,
-) -> pd.DataFrame:
-    """Crawl truyện đa nhãn từ các chuyên mục thể loại trên metruyenchu.com.vn."""
-    session = build_session(pool_maxsize=max_workers + 2)
-    story_urls: set[str] = set()
-
-    for cat_slug in METRUYENCHU_CATEGORIES:
-        for page in range(1, max_pages_per_cat + 1):
-            cat_url = f"{METRUYENCHU_BASE}/the-loai/{cat_slug}" + (f"?page={page}" if page > 1 else "")
-            try:
-                html = fetch_page(cat_url, delay=0.05, timeout=15, session=session)
-                doc = lxml.html.fromstring(html)
-                for href in doc.xpath("//a/@href"):
-                    href = href.strip()
-                    if (
-                        href.startswith("/")
-                        and href.count("/") == 1
-                        and len(href) > 5
-                        and not href.startswith(METRUYENCHU_SKIP_PATHS)
-                    ):
-                        story_urls.add(f"{METRUYENCHU_BASE}{href}")
-            except Exception:
-                continue
-
-    urls = sorted(story_urls)
-    print(f"[metruyenchu.com.vn] Phát hiện {len(urls)} URL truyện từ {len(METRUYENCHU_CATEGORIES)} thể loại.")
-
-    def _worker(target_url: str) -> dict[str, Any] | None:
-        html = fetch_page(target_url, delay=delay_per_request, timeout=15, session=session)
-        return parse_metruyenchu_story_html(html, url=target_url)
-
-    records, errors = _crawl_urls_concurrently(urls, _worker, max_workers=max_workers, label="metruyenchu")
-    df = _save_raw_records(records, "MT", output_csv)
-    print(f"[metruyenchu.com.vn] Hoàn tất: {len(df)} truyện có văn án thật -> {output_csv} (lỗi: {len(errors)})")
-    return df
-
-
-# =====================================================================
-# 3. WEBTRUYEN (WEBTRUYEN.VN -> WETRUYEN.COM)
+# 2. WEBTRUYEN (WEBTRUYEN.VN -> WETRUYEN.COM)
 # =====================================================================
 
 
@@ -852,92 +842,363 @@ def crawl_webtruyen(
 
 
 # =====================================================================
-# 4. WIKIPEDIA & WIKISOURCE (MEDIAWIKI API)
+# 3. METRUYENCHU.COM.VN
 # =====================================================================
 
 
-def crawl_wiki_literature(
-    output_csv: Path = DATA_RAW_DIR / "wiki_raw.csv",
-    label_studio_json: Path = DATA_LABELED_DIR / "wiki_label_studio.json",
-    max_pages_per_cat: int = 60,
+def discover_metruyenchu_categories(
+    session: requests.Session | None = None,
+    base_url: str = METRUYENCHU_BASE,
+) -> list[str]:
+    """Tự động khám phá toàn bộ slug thể loại trên metruyenchu.com.vn (fallback 38 thể loại)."""
+    client = session or build_session()
+    try:
+        html = fetch_page(f"{base_url.rstrip('/')}/", timeout=20, session=client)
+        doc = lxml.html.fromstring(html)
+        discovered: list[str] = []
+        seen: set[str] = set()
+        for a_el in doc.xpath('//a[contains(@href, "/the-loai/")]'):
+            href = str(a_el.get("href", "")).strip()
+            match = re.search(r"/the-loai/([a-z0-9-]+)", href)
+            if match:
+                slug = match.group(1)
+                if slug not in seen:
+                    seen.add(slug)
+                    discovered.append(slug)
+        if discovered:
+            return discovered
+    except Exception:
+        pass
+    return list(METRUYENCHU_CATEGORIES)
+
+
+def _extract_metruyenchu_max_page(doc: lxml.html.HtmlElement) -> int:
+    """Trích xuất số trang lớn nhất từ thanh phân trang chuyên mục của MeTruyenChu."""
+    max_page = 1
+    for href in doc.xpath('//a[contains(@href, "page=")]/@href'):
+        match = re.search(r"page=(\d+)", str(href))
+        if match:
+            max_page = max(max_page, int(match.group(1)))
+    return max_page
+
+
+def parse_metruyenchu_story_html(
+    html: str,
+    url: str,
     min_summary_words: int = 15,
+) -> dict[str, Any] | None:
+    """Trích xuất truyện từ metruyenchu.com.vn, bỏ đoạn SEO mẫu nếu không có văn án thật."""
+    doc = lxml.html.fromstring(html)
+    h1_els = doc.xpath("//h1")
+    author_els = doc.xpath('//a[@itemprop="author"]')
+    genre_els = doc.xpath('//li[contains(@class, "genres")]//a')
+    scroll_els = doc.find_class("scrolltext")
+
+    title = _clean_whitespace(h1_els[0].text_content()) if h1_els else ""
+    author = _clean_whitespace(author_els[0].text_content()) if author_els else ""
+    genres: list[str] = []
+    for a_el in genre_els:
+        g = _clean_whitespace(a_el.text_content())
+        if g and g not in genres:
+            genres.append(g)
+
+    raw_summary = _block_text(scroll_els[0]) if scroll_els else ""
+    summary = METRUYENCHU_SEO_PREFIX_RE.sub("", raw_summary).strip()
+    summary = re.sub(r"^Giới thiệu nội dung\s*:?\s*", "", summary, flags=re.IGNORECASE).strip()
+
+    if not title or not genres or len(summary.split()) < min_summary_words:
+        return None
+
+    return {
+        "title": title,
+        "author": author,
+        "summary": summary,
+        "genres_raw": "|".join(genres),
+        "status": "",
+        "chapters": "",
+        "rating": "",
+        "url": url,
+        "source": "metruyenchu.com.vn",
+        "crawl_date": date.today().isoformat(),
+    }
+
+
+def crawl_metruyenchu(
+    output_csv: Path = DATA_RAW_DIR / "metruyenchu_raw.csv",
+    categories: list[str] | None = None,
+    max_pages_per_cat: int | None = None,
+    max_workers: int = 10,
+    delay_per_request: float = 0.05,
+    merge_existing: bool = False,
 ) -> pd.DataFrame:
-    """Thu thập tóm tắt tác phẩm văn học từ Wikipedia và Wikisource tiếng Việt qua API."""
-    session = build_session(pool_maxsize=4)
-    session.headers.update(WIKI_HEADERS)
+    """Crawl truyện đa nhãn từ các chuyên mục thể loại trên metruyenchu.com.vn."""
+    session = build_session(pool_maxsize=max_workers + 2)
+    cat_slugs = (
+        list(categories)
+        if categories is not None
+        else discover_metruyenchu_categories(session=session)
+    )
+    existing_records: list[dict[str, Any]] = []
+    seen_urls: set[str] = set()
+    if merge_existing and output_csv.exists() and output_csv.stat().st_size > 0:
+        prev_df = pd.read_csv(output_csv, encoding="utf-8")
+        for rec in prev_df.fillna("").to_dict("records"):
+            u = str(rec.get("url", "")).strip()
+            if u and u not in seen_urls:
+                seen_urls.add(u)
+                existing_records.append(rec)
 
-    merged_by_url: dict[str, dict[str, Any]] = {}
+    story_urls: set[str] = set()
 
-    for api_url, source_name, cat_title, genres_str in WIKI_LITERATURE_CATEGORIES:
-        fetched_count = 0
-        gcmcontinue: str | None = None
+    def _collect_story_urls(doc: lxml.html.HtmlElement) -> None:
+        for href in doc.xpath("//a/@href"):
+            href = href.strip()
+            if (
+                href.startswith("/")
+                and href.count("/") == 1
+                and len(href) > 5
+                and not href.startswith(METRUYENCHU_SKIP_PATHS)
+            ):
+                story_urls.add(f"{METRUYENCHU_BASE}{href}")
 
-        while fetched_count < max_pages_per_cat:
-            batch_limit = min(20, max_pages_per_cat - fetched_count)
-            params: dict[str, Any] = {
-                "action": "query",
-                "generator": "categorymembers",
-                "gcmtitle": cat_title,
-                "gcmtype": "page",
-                "gcmlimit": batch_limit,
-                "prop": "extracts|info",
-                "exintro": 1,
-                "explaintext": 1,
-                "exlimit": batch_limit,
-                "inprop": "url",
-                "format": "json",
-            }
-            if gcmcontinue:
-                params["gcmcontinue"] = gcmcontinue
+    for cat_slug in cat_slugs:
+        page1_url = f"{METRUYENCHU_BASE}/the-loai/{cat_slug}"
+        try:
+            html1 = fetch_page(page1_url, delay=0.05, timeout=15, session=session)
+            doc1 = lxml.html.fromstring(html1)
+            _collect_story_urls(doc1)
+            detected_max = _extract_metruyenchu_max_page(doc1)
+            target_pages = (
+                detected_max
+                if max_pages_per_cat is None
+                else min(detected_max, max_pages_per_cat)
+            )
+        except Exception:
+            continue
 
+        for page in range(2, target_pages + 1):
+            cat_url = f"{METRUYENCHU_BASE}/the-loai/{cat_slug}?page={page}"
             try:
-                time.sleep(0.25)
-                resp = session.get(api_url, params=params, timeout=15)
-                resp.raise_for_status()
-                data = resp.json()
-            except Exception as exc:
-                print(f"  [wiki] Bỏ qua {cat_title} ({exc})")
-                break
+                html = fetch_page(cat_url, delay=0.05, timeout=15, session=session)
+                doc = lxml.html.fromstring(html)
+                _collect_story_urls(doc)
+            except Exception:
+                continue
 
-            pages = data.get("query", {}).get("pages", {})
-            if not pages:
-                break
+    urls = sorted(story_urls - seen_urls) if merge_existing else sorted(story_urls)
+    print(
+        f"[metruyenchu.com.vn] Phát hiện {len(story_urls)} URL "
+        f"(cần tải mới {len(urls)}) từ {len(cat_slugs)} thể loại."
+    )
 
-            for page in pages.values():
-                title = _clean_whitespace(str(page.get("title", "")))
-                summary = _clean_whitespace(str(page.get("extract", "")))
-                page_url = str(page.get("fullurl", "")).strip()
-                if not title or not page_url or len(summary.split()) < min_summary_words:
-                    continue
+    def _worker(target_url: str) -> dict[str, Any] | None:
+        html = fetch_page(target_url, delay=delay_per_request, timeout=15, session=session)
+        return parse_metruyenchu_story_html(html, url=target_url)
 
-                if page_url in merged_by_url:
-                    existing_genres = merged_by_url[page_url]["genres_raw"].split("|")
-                    for g in genres_str.split("|"):
-                        if g and g not in existing_genres:
-                            existing_genres.append(g)
-                    merged_by_url[page_url]["genres_raw"] = "|".join(existing_genres)
-                else:
-                    merged_by_url[page_url] = {
-                        "title": title,
-                        "author": "",
-                        "summary": summary,
-                        "genres_raw": genres_str,
-                        "status": "",
-                        "chapters": "",
-                        "rating": "",
-                        "url": page_url,
-                        "source": source_name,
-                        "crawl_date": date.today().isoformat(),
-                    }
+    records, errors = _crawl_urls_concurrently(urls, _worker, max_workers=max_workers, label="metruyenchu")
+    all_records = existing_records + records if merge_existing else records
+    df = _save_raw_records(all_records, "MT", output_csv)
+    print(
+        f"[metruyenchu.com.vn] Hoàn tất: {len(df)} truyện có văn án thật "
+        f"(mới: {len(records)}, lỗi: {len(errors)}) -> {output_csv}"
+    )
+    return df
 
-            fetched_count += len(pages)
-            gcmcontinue = data.get("continue", {}).get("gcmcontinue")
-            if not gcmcontinue:
-                break
 
-    records = list(merged_by_url.values())
-    df = _save_raw_records(records, "WK", output_csv, label_studio_json=label_studio_json)
-    print(f"[Wiki] Hoàn tất: {len(df)} tác phẩm văn học -> {output_csv}")
+# =====================================================================
+# 4. TRUYENFULL.LIVE (NGUỒN BỔ SUNG THỂ LOẠI THIẾU MẪU)
+# =====================================================================
+
+
+def _extract_truyenfull_max_page(doc: lxml.html.HtmlElement) -> int:
+    """Trích xuất số trang lớn nhất từ thanh phân trang trên truyenfull.live."""
+    max_page = 1
+    for href in doc.xpath('//ul[contains(@class, "pagination")]//a/@href'):
+        match = re.search(r"trang-(\d+)", str(href))
+        if match:
+            max_page = max(max_page, int(match.group(1)))
+    return max_page
+
+
+def _extract_truyenfull_category_story_urls(
+    doc: lxml.html.HtmlElement,
+    base_url: str = TRUYENFULL_BASE,
+) -> list[str]:
+    """Lấy danh sách URL truyện trong khối chính col-truyen-main của truyenfull.live."""
+    base_host = urlparse(base_url).netloc.lower()
+    urls: list[str] = []
+    seen: set[str] = set()
+    for href in doc.xpath('//div[contains(@class, "col-truyen-main")]//h3//a/@href'):
+        full_url = urljoin(base_url, str(href).strip())
+        parsed = urlparse(full_url)
+        path = parsed.path or "/"
+        if parsed.netloc.lower() == base_host and path != "/" and "/the-loai/" not in path and full_url not in seen:
+            seen.add(full_url)
+            urls.append(full_url)
+    return urls
+
+
+def parse_truyenfull_story_html(
+    html: str,
+    url: str,
+    extra_genres: list[str] | None = None,
+    category_crawled: str = "",
+    min_summary_words: int = 15,
+) -> dict[str, Any] | None:
+    """Trích xuất metadata và văn án từ trang truyện truyenfull.live."""
+    doc = lxml.html.fromstring(html)
+    title_els = doc.xpath('//h3[contains(@class, "title")]') or doc.xpath("//h1")
+    info_els = doc.xpath('//div[contains(@class, "info")]')
+    info_root = info_els[0] if info_els else doc
+    author_els = info_root.xpath('.//a[contains(@href, "/tac-gia/")]')
+    genre_els = info_root.xpath('.//a[contains(@href, "/the-loai/")]')
+    desc_els = doc.xpath('//div[contains(@class, "desc-text")] | //div[@itemprop="description"]')
+
+    title = _clean_whitespace(title_els[0].text_content()) if title_els else ""
+    author = _clean_whitespace(author_els[0].text_content()) if author_els else ""
+
+    status = ""
+    for sp in info_root.xpath(".//span"):
+        st_txt = _clean_whitespace(sp.text_content())
+        if st_txt.lower() in {"full", "đang ra", "hoàn thành", "tạm dừng"}:
+            status = st_txt
+            break
+
+    genres: list[str] = []
+    for a_el in genre_els:
+        g = _clean_whitespace(a_el.text_content())
+        if g and g not in genres:
+            genres.append(g)
+    for g in extra_genres or []:
+        if g and g not in genres:
+            genres.append(g)
+
+    summary = _block_text(desc_els[0]) if desc_els else ""
+    if not title or not genres or len(summary.split()) < min_summary_words:
+        return None
+
+    return {
+        "title": title,
+        "author": author,
+        "summary": summary,
+        "genres_raw": "|".join(genres),
+        "status": status,
+        "chapters": "",
+        "rating": "",
+        "url": url,
+        "source": "truyenfull.live",
+        "crawl_date": date.today().isoformat(),
+        "category_crawled": category_crawled,
+    }
+
+
+def crawl_truyenfull(
+    output_csv: Path = DATA_RAW_DIR / "truyenfull_raw.csv",
+    categories: list[tuple[str, str, int | None]] | None = None,
+    max_pages_per_cat: int | None = None,
+    max_workers: int = 10,
+    delay_per_request: float = 0.05,
+) -> pd.DataFrame:
+    """Cào bổ sung các chuyên mục thiếu mẫu trên truyenfull.live và lưu truyenfull_raw.csv."""
+    session = build_session(pool_maxsize=max_workers + 2)
+    cat_list = list(categories) if categories is not None else list(TRUYENFULL_RARE_CATEGORIES)
+    print(
+        f"[truyenfull.live] Bắt đầu cào bổ sung {len(cat_list)} chuyên mục thể loại.",
+        flush=True,
+    )
+
+    story_cache: dict[str, dict[str, Any] | None] = {}
+    records: list[dict[str, Any]] = []
+
+    def _fetch_cat_page(cat_slug: str, page_num: int) -> tuple[int, list[str]]:
+        page_url = (
+            f"{TRUYENFULL_BASE}/the-loai/{cat_slug}/"
+            if page_num == 1
+            else f"{TRUYENFULL_BASE}/the-loai/{cat_slug}/trang-{page_num}/"
+        )
+        html = fetch_page(page_url, delay=delay_per_request, timeout=20, session=session)
+        doc = lxml.html.fromstring(html)
+        return page_num, _extract_truyenfull_category_story_urls(doc, base_url=TRUYENFULL_BASE)
+
+    def _fetch_story(target_url: str) -> tuple[str, dict[str, Any] | None]:
+        html = fetch_page(target_url, delay=delay_per_request, timeout=20, session=session)
+        parsed = parse_truyenfull_story_html(html, url=target_url)
+        return target_url, parsed
+
+    for cat_idx, item in enumerate(cat_list, start=1):
+        slug, cat_name = item[0], item[1]
+        cat_cap = item[2] if len(item) > 2 else None
+        limit_pages = max_pages_per_cat if max_pages_per_cat is not None else cat_cap
+
+        page1_url = f"{TRUYENFULL_BASE}/the-loai/{slug}/"
+        try:
+            html1 = fetch_page(page1_url, delay=delay_per_request, timeout=20, session=session)
+            doc1 = lxml.html.fromstring(html1)
+            detected_max = _extract_truyenfull_max_page(doc1)
+            target_pages = detected_max if limit_pages is None else min(detected_max, limit_pages)
+            page_results: dict[int, list[str]] = {
+                1: _extract_truyenfull_category_story_urls(doc1, base_url=TRUYENFULL_BASE)
+            }
+        except Exception as exc:
+            print(f"  [{cat_idx}/{len(cat_list)}] Lỗi đọc {cat_name}: {exc}", flush=True)
+            continue
+
+        if target_pages > 1:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                future_map = {
+                    executor.submit(_fetch_cat_page, slug, p_num): p_num
+                    for p_num in range(2, target_pages + 1)
+                }
+                for future in as_completed(future_map):
+                    p_num = future_map[future]
+                    try:
+                        _, urls_on_page = future.result()
+                        page_results[p_num] = urls_on_page
+                    except Exception:
+                        page_results[p_num] = []
+
+        cat_urls: list[str] = []
+        seen_in_cat: set[str] = set()
+        for p_num in range(1, target_pages + 1):
+            for story_url in page_results.get(p_num, []):
+                if story_url not in seen_in_cat:
+                    seen_in_cat.add(story_url)
+                    cat_urls.append(story_url)
+
+        missing_urls = [u for u in cat_urls if u not in story_cache]
+        if missing_urls:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                future_map = {executor.submit(_fetch_story, u): u for u in missing_urls}
+                for future in as_completed(future_map):
+                    target_u = future_map[future]
+                    try:
+                        _, parsed_rec = future.result()
+                    except Exception:
+                        parsed_rec = None
+                    story_cache[target_u] = parsed_rec
+
+        added_in_cat = 0
+        for u in cat_urls:
+            base_rec = story_cache.get(u)
+            if base_rec is None:
+                continue
+            rec = dict(base_rec)
+            existing_genres = [g.strip() for g in str(rec.get("genres_raw", "")).split("|") if g.strip()]
+            if cat_name and cat_name not in existing_genres:
+                existing_genres.append(cat_name)
+            rec["genres_raw"] = "|".join(existing_genres)
+            rec["category_crawled"] = cat_name
+            records.append(rec)
+            added_in_cat += 1
+
+        print(
+            f"  [{cat_idx}/{len(cat_list)}] {cat_name}: {target_pages}/{detected_max} trang, "
+            f"{len(cat_urls)} URL, mới tải {len(missing_urls)} truyện, thêm {added_in_cat} bản ghi",
+            flush=True,
+        )
+
+    df = _save_raw_records(records, "TF", output_csv, sort_records=False)
+    print(f"[truyenfull.live] Hoàn tất: {len(df)} bản ghi thô -> {output_csv}", flush=True)
     return df
 
 
@@ -957,6 +1218,10 @@ def parse_story_html(
     """Hàm tổng quát trích xuất tiêu đề, tóm tắt và thể loại từ HTML trang truyện."""
     if "webnovel.vn" in url:
         return parse_webnovel_story_html(html, url)
+    if "truyenfull.live" in url:
+        parsed = parse_truyenfull_story_html(html, url, min_summary_words=1)
+        if parsed is not None:
+            return parsed
     if "metruyenchu.com.vn" in url:
         parsed = parse_metruyenchu_story_html(html, url, min_summary_words=1)
         if parsed is not None:
@@ -1014,37 +1279,39 @@ def crawl_all_sources(
     max_pages_per_cat: int | None = None,
     resume: bool = False,
 ) -> dict[str, pd.DataFrame]:
-    """Chạy crawl cho các nguồn được chọn (webnovel, metruyenchu, webtruyen, wiki)."""
-    selected = set(sources or ["webnovel", "metruyenchu", "webtruyen", "wiki"])
+    """Chạy crawl cho các nguồn được chọn (webnovel, webtruyen, truyenfull, metruyenchu)."""
+    selected = set(sources or ["webnovel", "webtruyen", "truyenfull", "metruyenchu"])
     outputs: dict[str, pd.DataFrame] = {}
     if "webnovel" in selected:
         outputs["webnovel"] = crawl_all_webnovel()
-    if "metruyenchu" in selected:
-        outputs["metruyenchu"] = crawl_metruyenchu()
     if "webtruyen" in selected:
         outputs["webtruyen"] = crawl_webtruyen(
             max_pages_per_cat=max_pages_per_cat,
             resume=resume,
         )
-    if "wiki" in selected:
-        outputs["wiki"] = crawl_wiki_literature()
+    if "truyenfull" in selected:
+        outputs["truyenfull"] = crawl_truyenfull(max_pages_per_cat=max_pages_per_cat)
+    if "metruyenchu" in selected:
+        outputs["metruyenchu"] = crawl_metruyenchu(max_pages_per_cat=max_pages_per_cat)
     return outputs
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Crawl dữ liệu văn học tiếng Việt")
+    parser = argparse.ArgumentParser(
+        description="Crawl dữ liệu truyện từ webnovel.vn, webtruyen.vn, truyenfull.live và metruyenchu.com.vn"
+    )
     parser.add_argument(
         "--sources",
         nargs="+",
-        default=["webnovel", "metruyenchu", "webtruyen", "wiki"],
-        choices=["webnovel", "metruyenchu", "webtruyen", "wiki"],
-        help="Danh sách nguồn cần crawl",
+        default=["webnovel", "webtruyen", "truyenfull", "metruyenchu"],
+        choices=["webnovel", "webtruyen", "truyenfull", "metruyenchu"],
+        help="Danh sách nguồn cần crawl (webnovel, webtruyen, truyenfull, metruyenchu)",
     )
     parser.add_argument(
         "--max-pages-per-cat",
         type=int,
         default=None,
-        help="Giới hạn số trang mỗi thể loại khi crawl WebTruyen (mặc định: tất cả các trang)",
+        help="Giới hạn số trang mỗi thể loại cho WebTruyen / MeTruyenChu (mặc định: tất cả các trang)",
     )
     parser.add_argument(
         "--resume",

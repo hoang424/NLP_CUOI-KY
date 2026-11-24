@@ -15,9 +15,7 @@ env/
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 
-# Trained model artifacts (heavy binaries)
-models/*.pkl
-models/*.pt
+# Trained model artifacts (giữ sẵn *.pkl và *.pt ~29.6 MB để pull về chạy ngay; chỉ chặn file trọng số lớn khác)
 models/*.pth
 models/*.bin
 models/*.safetensors

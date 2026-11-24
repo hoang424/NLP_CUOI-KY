@@ -1,7 +1,7 @@
 # Báo cáo Kết quả Phần 3: Mô hình Machine Learning truyền thống & Đánh giá — _TV3_
 
 - **Phụ trách:** Thành viên 3 (`feat/ml-models`)
-- **Trạng thái:** **Đã hoàn thành huấn luyện, tinh chỉnh siêu tham số, tối ưu ngưỡng quyết định và đánh giá 4 thí nghiệm ML trên tập Test (`2.672` mẫu, `22` nhãn chuẩn).**
+- **Trạng thái:** **Đã hoàn thành huấn luyện, tinh chỉnh siêu tham số, tối ưu ngưỡng quyết định và đánh giá 4 thí nghiệm ML trên tập Test (`3.114` mẫu, `35` nhãn chuẩn).**
 
 ---
 
@@ -9,66 +9,88 @@
 
 ### 1.1. Mô hình ML & Tối ưu ngưỡng ([src/models/ml_models.py](../src/models/ml_models.py))
 - Áp dụng **Binary Relevance (`OneVsRestClassifier`)** với `RANDOM_STATE = 42` cho `MultinomialNB` (BoW `TN1`, TF-IDF `TN2`), `LinearSVC` (`TN3`) và `LogisticRegression` (`TN4`).
-- Tối ưu ngưỡng từng nhãn trên tập `val` (`tune_per_label_thresholds()`) và lưu vào [ml_thresholds.json](../models/ml_thresholds.json) (đủ 22 khóa nhãn).
+- Tối ưu ngưỡng từng nhãn trên tập `val` (`tune_per_label_thresholds()`) và lưu vào [ml_thresholds.json](../models/ml_thresholds.json) (đủ 35 khóa nhãn).
 
 ### 1.2. Thực thi Notebook ML Baselines ([03_ml_baselines.ipynb](../notebooks/03_ml_baselines.ipynb))
-- Nạp từ [stories_clean.csv](../data/processed/stories_clean.csv) (`train=13.297`, `val=2.634`, `test=2.672`) trên không gian TF-IDF/BoW `10.000` chiều.
-- Baseline mặc định: `Linear SVM` overfit (`train_macro_f1 = 0.9200` vs `val = 0.3595`), còn `Multinomial NB (TF-IDF)` (`val = 0.1780`) và `Logistic Regression` (`val = 0.2376`) underfit ở ngưỡng `0.5`; sau tinh chỉnh + tối ưu ngưỡng trên `val`: `Logistic Regression` đạt **`val_macro_f1 = 0.5044`** (`val_micro_f1 = 0.6161`), `Linear SVM` đạt `0.4849` (`0.6084`), `NB BoW` đạt `0.4559` (`0.5818`) và `NB TF-IDF` đạt `0.4077` (`0.6046`).
+- Nạp từ [stories_clean.csv](../data/processed/stories_clean.csv) (`train=14.613`, `val=3.125`, `test=3.114`) trên không gian TF-IDF/BoW `10.000` chiều.
+- Baseline mặc định: `Linear SVM` overfit (`train_macro_f1 = 0.8994` vs `val = 0.2840`), còn `Multinomial NB (TF-IDF)` (`val = 0.1113`) và `Logistic Regression` (`val = 0.1644`) underfit ở ngưỡng `0.5`; sau tinh chỉnh siêu tham số + tối ưu ngưỡng trên `val`:
+  - `Logistic Regression (C=2.0, cw=balanced)`: `val_macro_f1` tăng `0.3796` $\rightarrow$ **`0.4115`** (`val_micro_f1 = 0.5451`, `Hamming = 0.0999`).
+  - `Linear SVM (C=0.25, cw=balanced)`: `0.3747` $\rightarrow$ `0.3981` (`0.5274`, `0.1042`).
+  - `Multinomial NB (BoW, alpha=0.25)`: `0.3389` $\rightarrow$ `0.3516` (`0.4931`, `0.1177`).
+  - `Multinomial NB (TF-IDF, alpha=0.05)`: `0.2117` $\rightarrow$ `0.3393` (`0.5394`, `0.0942`).
 
 ---
 
-## 2. Kết quả thực nghiệm trên tập Test (`2.672` mẫu — `22` nhãn)
+## 2. Kết quả thực nghiệm trên tập Test (`3.114` mẫu — `35` nhãn)
 
 ### 2.1. Bảng so sánh các mô hình ([experiments.csv](../outputs/tables/experiments.csv))
 
 | Experiment ID | Mô hình | Đặc trưng | Cấu hình tối ưu (từ `val`) | Subset Accuracy | Macro-F1 | Micro-F1 | Hamming Loss | Suy luận Test |
-|---|---|---|---|---|---|---|---|---|
-| `TN0_naive_baseline` | Naive Majority Baseline | Label Prior | Most frequent label | 0.0000 | 0.0337 | 0.3033 | 0.1232 | — |
-| `TN1_nb_bow` | Multinomial NB (BoW) | BoW (1–2 gram) | `alpha=0.1` + tuned thresholds | 0.0603 | 0.4319 | 0.5641 | 0.1300 | 48.89 ms |
-| `TN2_multinomial_nb` | Multinomial NB (TF-IDF) | TF-IDF (1–2 gram) | `alpha=0.05` + tuned thresholds | 0.0584 | 0.4031 | 0.5877 | 0.1207 | 39.32 ms |
-| `TN3_linear_svm` | Linear SVM (TF-IDF) | TF-IDF (1–2 gram) | `C=0.25, cw=balanced` + tuned thresholds | **0.0618** | 0.4767 | 0.6006 | **0.1193** | **14.83 ms** |
-| `TN4_logistic_regression` | **Logistic Regression (TF-IDF)** | TF-IDF (1–2 gram) | `C=1.0, cw=balanced` + tuned thresholds | 0.0561 | **0.4897** | **0.6035** | 0.1230 | 24.24 ms |
+|---|---|---|---|---:|---:|---:|---:|---:|
+| `TN0_naive_baseline` | Naive Majority Baseline | Label Prior | Most frequent label | 0.0000 | 0.0203 | 0.2652 | 0.0875 | — |
+| `TN1_nb_bow` | Multinomial NB (BoW) | BoW (1–2 gram) | `alpha=0.25` + tuned thresholds | 0.0193 | 0.3501 | 0.4889 | 0.1186 | 79.64 ms |
+| `TN2_multinomial_nb` | Multinomial NB (TF-IDF) | TF-IDF (1–2 gram) | `alpha=0.05` + tuned thresholds | 0.0286 | 0.3347 | 0.5376 | **0.0947** | 83.35 ms |
+| `TN3_linear_svm` | Linear SVM (TF-IDF) | TF-IDF (1–2 gram) | `C=0.25, cw=balanced` + tuned thresholds | 0.0260 | 0.3868 | 0.5276 | 0.1041 | **27.23 ms** |
+| `TN4_logistic_regression` | **Logistic Regression (TF-IDF)** | TF-IDF (1–2 gram) | `C=2.0, cw=balanced` + tuned thresholds | **0.0302** | **0.3944** | **0.5413** | 0.1008 | 35.19 ms |
 
-### 2.2. Hiệu năng 22 nhãn của mô hình ML tốt nhất (`Logistic Regression TF-IDF` trên tập Test)
+### 2.2. Hiệu năng đầy đủ 35 nhãn của mô hình ML tốt nhất (`Logistic Regression TF-IDF` trên tập Test)
 
-| Thể loại | Precision | Recall | F1-score | Support (`test`) |
-|---|---|---|---|---|
-| `co_dai` (Cổ đại) | 0.8081 | 0.8617 | **0.8341** | 875 |
-| `ngon_tinh` (Ngôn tình Nam–Nữ) | 0.7408 | 0.9156 | **0.8190** | 1.576 |
-| `dam_my` (Đam mỹ) | 0.7569 | 0.7891 | **0.7727** | 588 |
-| `hien_dai` (Hiện đại / Đô thị) | 0.5808 | 0.8409 | **0.6870** | 842 |
-| `tien_hiep` (Tiên hiệp) | 0.6425 | 0.7268 | **0.6821** | 183 |
-| `trong_sinh` (Trọng sinh) | 0.5642 | 0.4517 | **0.5017** | 321 |
-| `vong_du` (Võng du / Game) | 0.4615 | 0.5455 | **0.5000** | 22 |
-| `nu_cuong` (Nữ cường) | 0.3813 | 0.6871 | **0.4905** | 505 |
-| `sung` (Sủng / Ngọt) | 0.3588 | 0.7417 | **0.4836** | 666 |
-| `khoa_huyen_mat_the` (Khoa huyễn / Mạt thế / Dị năng) | 0.5625 | 0.4128 | **0.4762** | 109 |
-| `kiem_hiep` (Kiếm hiệp) | 0.5938 | 0.3958 | **0.4750** | 48 |
-| `xuyen_khong` (Xuyên không / Xuyên nhanh) | 0.4439 | 0.4928 | **0.4670** | 345 |
-| `huyen_huyen` (Huyền huyễn / Dị giới) | 0.3719 | 0.5880 | **0.4557** | 284 |
-| `cung_dau_gia_dau` (Cung đấu / Gia đấu) | 0.3536 | 0.5922 | **0.4428** | 255 |
-| `linh_di` (Linh dị / Kinh dị) | 0.4368 | 0.4000 | **0.4176** | 95 |
-| `trinh_tham` (Trinh thám) | 0.3571 | 0.4286 | 0.3896 | 35 |
-| `dien_van` (Điền văn) | 0.4655 | 0.3253 | 0.3830 | 166 |
-| `nguoc` (Ngược) | 0.2707 | 0.5229 | 0.3567 | 306 |
-| `bach_hop` (Bách hợp) | 0.4167 | 0.2679 | 0.3261 | 56 |
-| `lich_su_quan_su` (Lịch sử / Quân sự) | 0.3684 | 0.2593 | 0.3043 | 27 |
-| `hai_huoc` (Hài hước) | 0.2020 | 0.4747 | 0.2834 | 297 |
-| `he_thong` (Hệ thống) | 0.3134 | 0.1765 | 0.2258 | 119 |
+| STT | Thể loại | Precision | Recall | F1-score | Support (`test`) |
+|---|---|---:|---:|---:|---:|
+| 1 | `co_dai` (Cổ đại) | 0.7973 | 0.8332 | **0.8148** | 911 |
+| 2 | `ngon_tinh` (Ngôn tình Nam–Nữ) | 0.7000 | 0.9274 | **0.7978** | 1.721 |
+| 3 | `dam_my` (Đam mỹ) | 0.7630 | 0.8127 | **0.7870** | 598 |
+| 4 | `hien_dai` (Hiện đại / Đô thị) | 0.5304 | 0.8475 | **0.6524** | 938 |
+| 5 | `tien_hiep` (Tiên hiệp) | 0.5120 | 0.7028 | **0.5924** | 212 |
+| 6 | `trinh_tham` (Trinh thám) | 0.4706 | 0.5634 | **0.5128** | 71 |
+| 7 | `kiem_hiep` (Kiếm hiệp) | 0.5254 | 0.5000 | **0.5124** | 62 |
+| 8 | `xuyen_khong` (Xuyên không / Xuyên nhanh) | 0.4193 | 0.6360 | **0.5054** | 445 |
+| 9 | `nu_cuong` (Nữ cường) | 0.4198 | 0.6294 | **0.5037** | 545 |
+| 10 | `sung` (Sủng / Ngọt) | 0.3920 | 0.6829 | **0.4981** | 779 |
+| 11 | `trong_sinh` (Trọng sinh) | 0.5430 | 0.4481 | **0.4910** | 366 |
+| 12 | `huyen_huyen` (Huyền huyễn) | 0.3850 | 0.6055 | **0.4707** | 365 |
+| 13 | `vong_du` (Võng du / Game) | 0.4375 | 0.4912 | **0.4628** | 57 |
+| 14 | `mat_the` (Mạt thế) | 0.3770 | 0.5750 | **0.4554** | 40 |
+| 15 | `tham_hiem` (Thám hiểm) | 0.3571 | 0.4167 | **0.3846** | 12 |
+| 16 | `linh_di` (Linh dị / Kinh dị) | 0.3796 | 0.3565 | **0.3677** | 115 |
+| 17 | `cung_dau` (Cung đấu) | 0.3922 | 0.3175 | **0.3509** | 189 |
+| 18 | `khoa_huyen` (Khoa huyễn) | 0.3676 | 0.3289 | **0.3472** | 76 |
+| 19 | `nguoc` (Ngược) | 0.2645 | 0.4896 | **0.3435** | 335 |
+| 20 | `khac` (Khác) | 0.2840 | 0.4289 | **0.3417** | 443 |
+| 21 | `dien_van` (Điền văn) | 0.4364 | 0.2553 | **0.3221** | 188 |
+| 22 | `nu_phu` (Nữ phụ) | 0.2453 | 0.4333 | **0.3133** | 30 |
+| 23 | `quan_su` (Quân sự) | 0.2708 | 0.3514 | **0.3059** | 37 |
+| 24 | `he_thong` (Hệ thống) | 0.2480 | 0.3974 | **0.3054** | 156 |
+| 25 | `hai_huoc` (Hài hước) | 0.2168 | 0.4908 | **0.3008** | 326 |
+| 26 | `lich_su` (Lịch sử / Dã sử) | 0.3077 | 0.2540 | **0.2783** | 63 |
+| 27 | `di_nang` (Dị năng) | 0.1944 | 0.3684 | **0.2545** | 95 |
+| 28 | `hoc_duong` (Học đường / Truyện teen) | 0.1644 | 0.5333 | **0.2513** | 45 |
+| 29 | `gia_dau` (Gia đấu) | 0.1602 | 0.4962 | **0.2422** | 133 |
+| 30 | `bach_hop` (Bách hợp) | 0.3913 | 0.1667 | **0.2338** | 54 |
+| 31 | `tong_tai` (Tổng tài) | 0.2155 | 0.2336 | **0.2242** | 107 |
+| 32 | `di_gioi` (Dị giới) | 0.1605 | 0.2031 | **0.1793** | 64 |
+| 33 | `doan_van` (Đoản văn) | 0.1202 | 0.2486 | **0.1621** | 177 |
+| 34 | `tieu_thuyet` (Tiểu thuyết) | 0.0929 | 0.2079 | **0.1284** | 101 |
+| 35 | `quan_truong` (Quan trường) | 0.1429 | 0.0909 | **0.1111** | 11 |
 
 ### 2.3. Giải thích đặc trưng & Phân tích cặp nhãn nhầm của `Logistic Regression` ([03_ml_baselines.ipynb](../notebooks/03_ml_baselines.ipynb))
-- **Ma trận cặp nhãn nhầm `22×22` ([error_confusion_pairs.png](../outputs/figures/error_confusion_pairs.png)) & 12 mẫu lỗi ([error_cases_sample.csv](../outputs/tables/error_cases_sample.csv)):** Các cặp `False Positive` lớn nhất trên `Logistic Regression` là `ngon_tinh -> sung: 491`, `ngon_tinh -> nu_cuong: 479`, `co_dai -> nu_cuong: 324`, `hien_dai -> sung: 302`, `ngon_tinh -> hai_huoc: 299`; đồng thời lọc `773` mẫu thuộc 4 nhóm lỗi trọng tâm và xuất 12 mẫu đại diện.
-- **Interpretability (`coef_` — [top_features_per_genre.png](../outputs/figures/top_features_per_genre.png)):** Trọng số `Logistic Regression` bắt chuẩn từ khóa đặc trưng cho cả các nhãn mới tách: `vong_du` (*game, trò_chơi, chơi, chiến_đội*), `trinh_tham` (*cảnh_sát, vụ, phá_án, án*), `linh_di` (*quỷ, thần_quái, ma*), `khoa_huyen_mat_the` (*không_gian, zombie, tận thế*), `sung` (*sủng, ngọt*), `nguoc` (*ngược, ngược_luyến, ngược_tâm*), `cung_dau_gia_dau` (*cung_đình, quý_phi, hoàng_đế*).
+- **Ma trận cặp nhãn nhầm `35×35` ([error_confusion_pairs.png](../outputs/figures/error_confusion_pairs.png)) & 12 mẫu lỗi ([error_cases_sample.csv](../outputs/tables/error_cases_sample.csv)):** Các cặp `False Positive` lớn nhất trên `Logistic Regression` là `ngon_tinh -> sung: 482`, `ngon_tinh -> nu_cuong: 379`, `ngon_tinh -> hai_huoc: 336`, `ngon_tinh -> nguoc: 312`, `hien_dai -> sung: 305`; lọc `1.187` mẫu thuộc 4 nhóm lỗi trọng tâm và xuất 12 mẫu đại diện.
+- **Interpretability (`coef_` — [top_features_per_genre.png](../outputs/figures/top_features_per_genre.png)):** Trọng số `Logistic Regression` bắt trúng từ khóa phân biệt giữa các nhóm thể loại gần bối cảnh hoặc dễ nhầm lẫn:
+  - `mat_the` (*tận thế 10.60, zombie 9.78, tang_thi 7.54*) vs `khoa_huyen` (*thế_giới 7.63, vũ_trụ 5.86, viễn_tưởng 5.82, tinh_tế 5.06*) vs `di_nang` (*không_gian 7.96, năng_lực 6.86, biến_dị 4.80*).
+  - `tham_hiem` (*phiêu_lưu 8.39, vùng_đất 5.49, hành_trình 4.97*).
+  - `cung_dau` (*cung_đình 7.83, hoàng_hậu 6.10, thái_tử 5.36*) vs `gia_dau` (*hầu_phủ 4.99, phu_quân 4.03*).
+  - `quan_su` (*chiến_tranh 5.50, quân_đội 4.71*) vs `quan_truong` (*cán_bộ 4.94, triều_đình 4.76, chính_trị 4.40*).
+  - `vong_du` (*game 14.98, trò_chơi 12.40*), `trinh_tham` (*cảnh_sát 8.96, phá_án 7.41*), `linh_di` (*quỷ 12.17, thần_quái 7.05*).
 
 ### 2.4. Biểu đồ đã xuất (`outputs/figures/`)
-- [ml_model_comparison.png](../outputs/figures/ml_model_comparison.png) — So sánh 4 thí nghiệm ML truyền thống & Naive Baseline trên 22 nhãn.
-- [ml_f1_per_label.png](../outputs/figures/ml_f1_per_label.png) — Precision / Recall / F1 của `Logistic Regression (TF-IDF)` theo 22 thể loại.
-- [ml_confusion_matrices.png](../outputs/figures/ml_confusion_matrices.png) — Lưới ma trận nhầm lẫn nhị phân 22 thể loại (`Logistic Regression`).
-- [error_confusion_pairs.png](../outputs/figures/error_confusion_pairs.png) và [top_features_per_genre.png](../outputs/figures/top_features_per_genre.png) — Ma trận nhầm lẫn cặp nhãn và Top-8 từ khóa `coef_` theo thể loại.
+- [ml_model_comparison.png](../outputs/figures/ml_model_comparison.png) — So sánh 4 thí nghiệm ML truyền thống & Naive Baseline trên 35 nhãn.
+- [ml_f1_per_label.png](../outputs/figures/ml_f1_per_label.png) — Precision / Recall / F1 của `Logistic Regression (TF-IDF)` theo 35 thể loại.
+- [ml_confusion_matrices.png](../outputs/figures/ml_confusion_matrices.png) — Lưới ma trận nhầm lẫn nhị phân `7×5` cho 35 thể loại (`Logistic Regression`).
+- [error_confusion_pairs.png](../outputs/figures/error_confusion_pairs.png) và [top_features_per_genre.png](../outputs/figures/top_features_per_genre.png) — Ma trận cặp nhãn `35×35` và Top-8 từ khóa `coef_`.
 
 ---
 
 ## 3. Nhận xét chính & Kiểm thử
-- **`Logistic Regression (TF-IDF, C=1.0, cw=balanced)`** dẫn đầu nhóm ML về **`Macro-F1 = 0.4897`** và **`Micro-F1 = 0.6035`**, gấp hơn 14 lần Naive Baseline (`Macro-F1 = 0.0337`), trong khi **`Linear SVM`** đạt **`Subset Accuracy = 0.0618`**, **`Hamming Loss = 0.1193`** và tốc độ suy luận nhanh nhất (`14.83 ms`).
-- Các nhãn đặc thù đạt kết quả ổn định dù đã loại bỏ triệt để rò rỉ nhãn ở các đoạn văn án dính từ: `dam_my` (`0.7727`), `trong_sinh` (`0.5017`), `vong_du` (`0.5000`, dù chỉ `22` mẫu test), `sung` (`0.4836`), `khoa_huyen_mat_the` (`0.4762`), `cung_dau_gia_dau` (`0.4428`), `linh_di` (`0.4176`), `trinh_tham` (`0.3896`), `nguoc` (`0.3567`), `bach_hop` (`0.3261`), `lich_su_quan_su` (`0.3043`).
+- **`Logistic Regression (TF-IDF, C=2.0, cw=balanced)`** dẫn đầu nhóm ML về **Accuracy (`0.0302`)**, **Macro-F1 (`0.3944`)** và **Micro-F1 (`0.5413`)**, gấp gần 20 lần Naive Baseline (`Macro-F1 = 0.0203`), trong khi **`Multinomial NB (TF-IDF)`** đạt **Hamming Loss thấp nhất (`0.0947`)** và **`Linear SVM`** có tốc độ suy luận nhanh nhất (`27.23 ms`).
+- Nhờ cào bổ sung dữ liệu từ `truyenfull.live` và `metruyenchu.com.vn`, các thể loại ít mẫu ban đầu đều đạt hiệu năng khả quan trên tập Test độc lập (`trinh_tham = 0.5128`, `vong_du = 0.4628`, `mat_the = 0.4554`, `tham_hiem = 0.3846`, `nu_phu = 0.3133`, `quan_su = 0.3059`), trong khi các nhãn hình thức (`doan_van = 0.1621`, `tieu_thuyet = 0.1284`) vẫn thấp do dung lượng/cách phân loại không phụ thuộc nhiều vào từ vựng nội dung.
 - **Unit tests ([tests/test_metrics.py](../tests/test_metrics.py)):** **3/3 PASS**.

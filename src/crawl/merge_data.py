@@ -10,7 +10,7 @@ from typing import Iterable
 import pandas as pd
 
 from src.config import (
-    ACTIVE_RAW_CSV,
+    ACTIVE_RAW_CSVS,
     DATA_LABELED_DIR,
     DATA_RAW_DIR,
     GENRE_LABELS,
@@ -140,9 +140,9 @@ def merge_raw_and_labeled(
     labeled_dir: Path = DATA_LABELED_DIR,
     output_csv: Path = STORIES_CSV,
     min_words: int = MIN_SUMMARY_WORDS,
-    input_csvs: Iterable[Path] | None = (ACTIVE_RAW_CSV,),
+    input_csvs: Iterable[Path] | None = ACTIVE_RAW_CSVS,
 ) -> pd.DataFrame:
-    """Gộp dữ liệu nguồn (mặc định webtruyen_raw.csv hoặc data/raw + data/labeled), loại trùng tên/tóm tắt và tạo cột one-hot."""
+    """Gộp dữ liệu từ các nguồn cấu hình (hoặc toàn bộ data/raw + data/labeled), loại trùng và tạo cột one-hot."""
     if input_csvs is not None:
         csv_paths = [Path(p) for p in input_csvs]
         frames = [pd.read_csv(p, encoding="utf-8") for p in csv_paths if p.exists()]

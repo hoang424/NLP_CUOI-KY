@@ -1,157 +1,135 @@
-"""Định nghĩa nguồn dữ liệu và bảng ánh xạ chuẩn hóa thể loại văn học."""
+"""Định nghĩa nguồn dữ liệu và bảng ánh xạ chuẩn hóa 42 thẻ gốc -> 35 nhãn."""
 
 DATA_SOURCES: dict[str, dict[str, str]] = {
-    "webnovel_vn": {
-        "name": "Webnovel.vn",
-        "description": "Kho truyện chữ & sách hay tiếng Việt (247 đầu truyện/sách có gắn thẻ thể loại)",
-        "url": "https://webnovel.vn/",
-        "sitemap": "https://webnovel.vn/sitemap/stories/sitemap_story_0.xml.gz",
+    "webtruyen": {
+        "name": "WebTruyen (webtruyen.vn -> wetruyen.com)",
+        "description": "Kho truyện chữ gốc với 42 chuyên mục thể loại đầy đủ",
+        "url": "https://wetruyen.com/",
+    },
+    "truyenfull": {
+        "name": "TruyenFull (truyenfull.live)",
+        "description": "Kho truyện chữ đa nhãn dùng để cào bổ sung các thể loại thiếu mẫu",
+        "url": "https://truyenfull.live/",
     },
     "metruyenchu": {
         "name": "MeTruyenChu (metruyenchu.com.vn)",
-        "description": "Kho truyện chữ đa thể loại tiếng Việt có gán nhãn đa nhãn và phần giới thiệu",
+        "description": "Kho truyện chữ đa thể loại tiếng Việt bổ sung Dã sử & nhãn hiếm",
         "url": "https://metruyenchu.com.vn/",
     },
-    "webtruyen": {
-        "name": "WebTruyen (webtruyen.vn -> wetruyen.com)",
-        "description": "Kho truyện chữ phân loại theo đầy đủ chuyên mục thể loại",
-        "url": "https://wetruyen.com/",
-    },
-    "wikipedia_vi": {
-        "name": "Wikipedia Tiếng Việt",
-        "description": "Tóm tắt tác phẩm văn học, tiểu thuyết lịch sử và sách xuất bản qua MediaWiki API",
-        "url": "https://vi.wikipedia.org/w/api.php",
-    },
-    "uvb_dataset": {
-        "name": "UVB Vietnamese Books Dataset",
-        "description": "Bộ dữ liệu sách tiếng Việt (447 sách, 230 mẫu có sẵn nhãn)",
-        "url": "https://github.com/uvb-dataset",
-    },
-    "wikisource": {
-        "name": "Wikisource Tiếng Việt",
-        "description": "Các đoạn văn bản văn học Việt Nam và tác phẩm kinh điển",
-        "url": "https://vi.wikisource.org/w/api.php",
-    },
-    "sgk_nguvan": {
-        "name": "Ngữ liệu SGK Ngữ văn",
-        "description": "Đoạn trích tóm tắt tác phẩm văn học trong chương trình Ngữ văn",
-        "url": "https://vi.wikisource.org/wiki/Thể_loại:Văn_học_Việt_Nam",
+    "webnovel_vn": {
+        "name": "Webnovel.vn",
+        "description": "Kho truyện chữ tiếng Việt thu thập từ sitemap và /all/",
+        "url": "https://webnovel.vn/",
+        "sitemap": "https://webnovel.vn/sitemap.xml",
     },
 }
 
-# Ánh xạ 42 thẻ thể loại gốc sang 22 nhãn chuẩn
+# Ánh xạ 42 thẻ thể loại gốc (và đồng nghĩa liên trang) sang 35 nhãn chuẩn
 GENRE_MAPPING: dict[str, str] = {
-    # 1. Ngôn tình (gồm ngôn tình, nữ phụ, tổng tài)
+    # 1. Nhóm tình cảm / hình tượng nhân vật (giữ độc lập)
     "ngôn tình": "ngon_tinh",
     "ngon tinh": "ngon_tinh",
-    "nữ phụ": "ngon_tinh",
-    "nu phu": "ngon_tinh",
-    "tổng tài": "ngon_tinh",
-    "tong tai": "ngon_tinh",
     "romance": "ngon_tinh",
     "tình cảm": "ngon_tinh",
-    # 2. Đam mỹ (tách riêng)
     "đam mỹ": "dam_my",
     "dam my": "dam_my",
-    # 3. Bách hợp (tách riêng)
     "bách hợp": "bach_hop",
     "bach hop": "bach_hop",
-    # 4. Tiên hiệp
+    "tổng tài": "tong_tai",
+    "tong tai": "tong_tai",
+    "nữ phụ": "nu_phu",
+    "nu phu": "nu_phu",
+    "nữ cường": "nu_cuong",
+    "nu cuong": "nu_cuong",
+    "sủng": "sung",
+    "sung": "sung",
+    "ngược": "nguoc",
+    "nguoc": "nguoc",
+    "hài hước": "hai_huoc",
+    "hai huoc": "hai_huoc",
+    # 2. Nhóm giả tưởng / kỳ ảo / hành động (giữ độc lập từng nhãn)
     "tiên hiệp": "tien_hiep",
     "tien hiep": "tien_hiep",
     "tu tiên": "tien_hiep",
-    # 5. Kiếm hiệp
     "kiếm hiệp": "kiem_hiep",
     "kiem hiep": "kiem_hiep",
-    # 6. Huyền huyễn / Dị giới
+    "võ hiệp": "kiem_hiep",
     "huyền huyễn": "huyen_huyen",
     "huyen huyen": "huyen_huyen",
-    "dị giới": "huyen_huyen",
-    "di gioi": "huyen_huyen",
-    "thám hiểm": "huyen_huyen",
-    "tham hiem": "huyen_huyen",
-    "light novel": "huyen_huyen",
-    # 7. Linh dị / Kinh dị (tách riêng)
+    "fantasy": "huyen_huyen",
+    "đông phương huyền huyễn": "huyen_huyen",
+    "dị giới": "di_gioi",
+    "di gioi": "di_gioi",
+    "dị năng": "di_nang",
+    "di nang": "di_nang",
+    "mạt thế": "mat_the",
+    "mat the": "mat_the",
+    "khoa huyễn": "khoa_huyen",
+    "khoa huyen": "khoa_huyen",
     "linh dị": "linh_di",
     "linh di": "linh_di",
     "kinh dị": "linh_di",
     "kinh di": "linh_di",
-    # 8. Khoa huyễn / Mạt thế / Dị năng (gộp nhóm giả tưởng khoa học - năng lực)
-    "khoa huyễn": "khoa_huyen_mat_the",
-    "khoa huyen": "khoa_huyen_mat_the",
-    "mạt thế": "khoa_huyen_mat_the",
-    "mat the": "khoa_huyen_mat_the",
-    "dị năng": "khoa_huyen_mat_the",
-    "di nang": "khoa_huyen_mat_the",
-    # 9. Võng du / Game (tách riêng)
-    "võng du": "vong_du",
-    "vong du": "vong_du",
-    # 10. Trinh thám (tách riêng)
     "trinh thám": "trinh_tham",
     "trinh tham": "trinh_tham",
-    # 11. Điền văn
-    "điền văn": "dien_van",
-    "dien van": "dien_van",
-    "thập niên 60 70 80": "dien_van",
-    "thập niên": "dien_van",
-    "làm ruộng": "dien_van",
-    # 12. Lịch sử / Quân sự (gồm lịch sử, quân sự, dã sử)
-    "lịch sử": "lich_su_quan_su",
-    "lich su": "lich_su_quan_su",
-    "quân sự": "lich_su_quan_su",
-    "quan su": "lich_su_quan_su",
-    "dã sử": "lich_su_quan_su",
-    "da su": "lich_su_quan_su",
-    "historical": "lich_su_quan_su",
-    "classics": "lich_su_quan_su",
-
-    # 13. Cổ đại (gồm cổ đại, đông phương, cổ trang)
-    "cổ đại": "co_dai",
-    "co dai": "co_dai",
-    "cổ trang": "co_dai",
-    "đông phương": "co_dai",
-    "dong phuong": "co_dai",
-    # 14. Hiện đại / Đô thị (gồm đô thị, hiện đại, truyện teen)
-    "đô thị": "hien_dai",
-    "do thi": "hien_dai",
-    "hiện đại": "hien_dai",
-    "hien dai": "hien_dai",
-    "truyện teen": "hien_dai",
-    "truyen teen": "hien_dai",
-
-    # 15. Cung đấu / Gia đấu (tách khỏi cổ đại)
-    "cung đấu": "cung_dau_gia_dau",
-    "cung dau": "cung_dau_gia_dau",
-    "gia đấu": "cung_dau_gia_dau",
-    "gia dau": "cung_dau_gia_dau",
-    # 16. Xuyên không / Xuyên nhanh
+    "thám hiểm": "tham_hiem",
+    "tham hiem": "tham_hiem",
+    "adventure": "tham_hiem",
+    # 3. Nhóm mô-típ / hệ thống / dòng thời gian
+    "võng du": "vong_du",
+    "vong du": "vong_du",
+    "hệ thống": "he_thong",
+    "he thong": "he_thong",
     "xuyên không": "xuyen_khong",
     "xuyen khong": "xuyen_khong",
     "xuyên việt": "xuyen_khong",
     "xuyên nhanh": "xuyen_khong",
     "xuyen nhanh": "xuyen_khong",
-    # 17. Trọng sinh
     "trọng sinh": "trong_sinh",
     "trong sinh": "trong_sinh",
     "trùng sinh": "trong_sinh",
-    # 18. Hệ thống
-    "hệ thống": "he_thong",
-    "he thong": "he_thong",
-    # 19. Nữ cường
-    "nữ cường": "nu_cuong",
-    "nu cuong": "nu_cuong",
-    # 20. Sủng / Ngọt (tách riêng vì xuất hiện mạnh cả trên Ngôn tình lẫn Đam mỹ/Bách hợp)
-    "sủng": "sung",
-    "sung": "sung",
-    # 21. Ngược (tách riêng vì xuất hiện mạnh cả trên Ngôn tình lẫn Đam mỹ/Bách hợp)
-    "ngược": "nguoc",
-    "nguoc": "nguoc",
-    # 22. Hài hước
-    "hài hước": "hai_huoc",
-    "hai huoc": "hai_huoc",
+    # 4. Nhóm bối cảnh / xã hội / đời sống
+    "cổ đại": "co_dai",
+    "co dai": "co_dai",
+    "cổ trang": "co_dai",
+    "hiện đại": "hien_dai",
+    "hien dai": "hien_dai",
+    "đô thị": "hien_dai",
+    "do thi": "hien_dai",
+    "truyện teen": "hoc_duong",
+    "truyen teen": "hoc_duong",
+    "học đường": "hoc_duong",
+    "hoc duong": "hoc_duong",
+    "cung đấu": "cung_dau",
+    "cung dau": "cung_dau",
+    "gia đấu": "gia_dau",
+    "gia dau": "gia_dau",
+    "điền văn": "dien_van",
+    "dien van": "dien_van",
+    "thập niên 60 70 80": "dien_van",
+    "thập niên": "dien_van",
+    "làm ruộng": "dien_van",
+    # 5. Nhóm lịch sử / quân sự / chính trường
+    "lịch sử": "lich_su",
+    "lich su": "lich_su",
+    "dã sử": "lich_su",
+    "da su": "lich_su",
+    "historical": "lich_su",
+    "quân sự": "quan_su",
+    "quan su": "quan_su",
+    "quan trường": "quan_truong",
+    "quan truong": "quan_truong",
+    # 6. Nhóm hình thức & mở
+    "đoản văn": "doan_van",
+    "doan van": "doan_van",
+    "truyện ngắn": "doan_van",
+    "tiểu thuyết": "tieu_thuyet",
+    "tieu thuyet": "tieu_thuyet",
+    "khác": "khac",
+    "khac": "khac",
 }
 
-# Các thẻ không phải thể loại nội dung hoặc quá ít mẫu (bỏ khác, đoản văn, tiểu thuyết, phương tây, quan trường, việt nam)
+# Các thẻ trạng thái hệ thống, 4 thẻ nguồn gốc địa lý/quốc gia và thẻ sách phi hư cấu cần loại bỏ
 NON_GENRE_TAGS: set[str] = {
     "full",
     "hot",
@@ -164,15 +142,18 @@ NON_GENRE_TAGS: set[str] = {
     "vip",
     "đề cử",
     "sách hay dành cho hội viên",
-    "khác",
-    "đoản văn",
-    "doan van",
-    "tiểu thuyết",
-    "tieu thuyet",
-    "phương tây",
-    "phuong tay",
-    "quan trường",
-    "quan truong",
+    "truyện sáng tác",
+    # 4 thẻ phân loại theo nguồn gốc quốc gia / khu vực địa lý
     "việt nam",
     "viet nam",
+    "light novel",
+    "đông phương",
+    "dong phuong",
+    "phương tây",
+    "phuong tay",
+    # Thẻ sách kỹ năng / phi hư cấu từ nguồn phụ
+    "phát triển bản thân",
+    "tâm linh",
+    "kinh doanh",
+    "review sách",
 }

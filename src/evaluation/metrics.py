@@ -222,7 +222,7 @@ def plot_multilabel_confusion_matrices(
         ax.set_title(GENRE_DISPLAY_NAMES.get(names[idx], names[idx]), fontsize=10)
 
     fig.suptitle(f"Ma trận nhầm lẫn nhị phân cho {n_labels} thể loại — {model_name}", fontsize=13, fontweight="bold")
-    plt.tight_layout(rect=[0, 0, 1, 0.94])
+    plt.tight_layout(rect=[0, 0, 1, 0.97 if n_rows >= 6 else 0.94])
     plt.savefig(output_path, dpi=150)
     plt.close(fig)
     return output_path

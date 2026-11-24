@@ -184,6 +184,7 @@ from src.config import (
     RANDOM_STATE,
     STORIES_CLEAN_CSV,
     STORIES_CSV,
+    TABLES_DIR,
     TFIDF_VECTORIZER_PATH,
 )
 from src.features.bow_tfidf import load_tfidf_vectorizer
@@ -193,12 +194,35 @@ from src.models.textcnn import load_textcnn_checkpoint
 from src.pipeline import run_pipeline
 from src.preprocessing.tokenizer import load_stopwords, preprocess_text
 
-MODEL_OPTIONS: dict[str, str] = {
-    "logistic_regression": "Logistic Regression (TF-IDF) — Macro-F1 (0.4897) & Micro-F1 cao nhất (0.6035)",
-    "linear_svm": "Linear SVM (TF-IDF) — Macro-F1 (0.4767) & Accuracy (0.0618)",
-    "textcnn": "TextCNN (Word Embedding) — Macro-F1 (0.4237) & Micro-F1 (0.5657)",
-    "multinomial_nb": "Multinomial Naive Bayes (TF-IDF) — Macro-F1 (0.4031) & Micro-F1 (0.5877)",
+MODEL_EXP_MAP: dict[str, tuple[str, str]] = {
+    "logistic_regression": ("TN4_logistic_regression", "Logistic Regression (TF-IDF)"),
+    "linear_svm": ("TN3_linear_svm", "Linear SVM (TF-IDF)"),
+    "textcnn": ("TN5_textcnn", "TextCNN (Word Embedding)"),
+    "multinomial_nb": ("TN2_multinomial_nb", "Multinomial Naive Bayes (TF-IDF)"),
 }
+
+
+def build_model_options() -> dict[str, str]:
+    """Tạo nhãn hiển thị mô hình kèm chỉ số thực tế từ experiments.csv."""
+    exp_df = load_dataset_csv(str(EXPERIMENTS_CSV))
+    options: dict[str, str] = {}
+    metrics_by_id: dict[str, dict[str, float]] = {}
+    if not exp_df.empty and "experiment_id" in exp_df.columns:
+        for row in exp_df.to_dict("records"):
+            eid = str(row.get("experiment_id", ""))
+            if eid:
+                metrics_by_id[eid] = row
+
+    for key, (exp_id, base_name) in MODEL_EXP_MAP.items():
+        m = metrics_by_id.get(exp_id)
+        if m is not None:
+            options[key] = (
+                f"{base_name} — Macro-F1: {float(m['macro_f1']):.4f} | "
+                f"Micro-F1: {float(m['micro_f1']):.4f}"
+            )
+        else:
+            options[key] = base_name
+    return options
 
 SAMPLE_SUMMARIES: dict[str, str] = {
     "Tự nhập văn bản mới": "",
@@ -222,13 +246,13 @@ SAMPLE_SUMMARIES: dict[str, str] = {
 }
 
 FIGURE_CAPTIONS: dict[str, str] = {
-    "eda_overview.png": "Tổng quan EDA dữ liệu webtruyen.vn (Phân bố 22 thể loại & Độ dài văn án)",
-    "ml_model_comparison.png": "So sánh 4 cấu hình ML truyền thống & Naive Baseline (22 thể loại)",
+    "eda_overview.png": f"Tổng quan EDA dữ liệu đa nguồn (Phân bố {len(GENRE_LABELS)} thể loại & Độ dài văn án)",
+    "ml_model_comparison.png": f"So sánh 4 cấu hình ML truyền thống & Naive Baseline ({len(GENRE_LABELS)} thể loại)",
     "all_models_comparison.png": "So sánh toàn bộ 5 thí nghiệm (ML vs TextCNN)",
-    "ml_f1_per_label.png": "Precision / Recall / F1 theo 22 thể loại (Logistic Regression)",
-    "ml_confusion_matrices.png": "Ma trận nhầm lẫn nhị phân 22 thể loại (Logistic Regression)",
+    "ml_f1_per_label.png": f"Precision / Recall / F1 theo {len(GENRE_LABELS)} thể loại (Logistic Regression)",
+    "ml_confusion_matrices.png": f"Ma trận nhầm lẫn nhị phân {len(GENRE_LABELS)} thể loại (Logistic Regression)",
     "dl_learning_curves.png": "Đường cong huấn luyện Deep Learning (TextCNN)",
-    "dl_f1_per_label.png": "Precision / Recall / F1 theo 22 thể loại (TextCNN)",
+    "dl_f1_per_label.png": f"Precision / Recall / F1 theo {len(GENRE_LABELS)} thể loại (TextCNN)",
     "error_analysis_slices.png": "Phân tích hiệu năng theo cấu trúc văn án, độ dài và số nhãn",
     "error_confusion_pairs.png": "Ma trận cặp nhãn nhầm lẫn (True Label × False Positive)",
     "top_features_per_genre.png": "Top-8 từ khóa TF-IDF trọng số cao nhất",
@@ -240,10 +264,70 @@ def _find_vietnamese_font() -> str | None:
         Path(r"C:\Windows\Fonts\arial.ttf"),
         Path(r"C:\Windows\Fonts\segoeui.ttf"),
         Path(r"C:\Windows\Fonts\tahoma.ttf"),
+        Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+        Path("/Library/Fonts/Arial.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        Path("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
     ]:
         if candidate.exists():
             return str(candidate)
     return None
+
+
+def _show_saved_figure(fname: str) -> bool:
+    """Hiển thị biểu đồ đã lưu theo hết chiều rộng khung chứa hiện tại."""
+    fig_path = FIGURES_DIR / fname
+    if not fig_path.exists():
+        return False
+    st.image(
+        str(fig_path),
+        caption=FIGURE_CAPTIONS.get(fname, fname),
+        use_container_width=True,
+    )
+    return True
+
+
+def _render_horizontal_bar_chart(
+    df: pd.DataFrame,
+    label_col: str,
+    value_col: str,
+    x_title: str,
+    height: int = 620,
+    color: str = "#4c72b0",
+) -> None:
+    """Vẽ biểu đồ cột ngang sắp xếp giảm dần theo giá trị để hiển thị rõ đủ 35 nhãn."""
+    if df.empty:
+        return
+    ordered_df = df.sort_values(value_col, ascending=False).reset_index(drop=True)
+    try:
+        import altair as alt
+
+        chart = (
+            alt.Chart(ordered_df)
+            .mark_bar(color=color)
+            .encode(
+                x=alt.X(f"{value_col}:Q", title=x_title),
+                y=alt.Y(
+                    f"{label_col}:N",
+                    sort=alt.SortField(field=value_col, order="descending"),
+                    title=None,
+                    axis=alt.Axis(labelLimit=240),
+                ),
+                tooltip=[
+                    alt.Tooltip(label_col, title="Thể loại"),
+                    alt.Tooltip(value_col, title=x_title),
+                ],
+            )
+            .properties(height=height)
+        )
+        st.altair_chart(chart, use_container_width=True)
+    except ImportError:
+        st.bar_chart(
+            ordered_df.set_index(label_col)[value_col],
+            horizontal=True,
+            height=height,
+            color=color,
+        )
 
 
 @st.cache_resource
@@ -354,12 +438,13 @@ def render_prediction_tab() -> None:
     """Tab chính: Nhập tóm tắt truyện và dự đoán toàn bộ thể loại đạt ngưỡng xác suất."""
     st.subheader("Dự đoán thể loại từ phần giới thiệu / tóm tắt truyện")
 
+    model_options = build_model_options()
     col_cfg1, col_cfg2 = st.columns([2.4, 1.4])
     with col_cfg1:
         selected_key = st.selectbox(
             "Chọn mô hình",
-            options=list(MODEL_OPTIONS.keys()),
-            format_func=lambda k: MODEL_OPTIONS[k],
+            options=list(model_options.keys()),
+            format_func=lambda k: model_options[k],
         )
     with col_cfg2:
         use_tuned = st.checkbox("Dùng ngưỡng tối ưu theo từng nhãn", value=True)
@@ -431,8 +516,16 @@ def render_prediction_tab() -> None:
                 "Thể loại": [r["display_name"] for r in results],
                 "Xác suất": [round(r["probability"], 4) for r in results],
             }
-        ).set_index("Thể loại")
-        st.bar_chart(prob_df)
+        )
+        st.markdown(f"**Biểu đồ xác suất dự đoán trên {len(GENRE_LABELS)} thể loại**")
+        _render_horizontal_bar_chart(
+            prob_df,
+            label_col="Thể loại",
+            value_col="Xác suất",
+            x_title="Xác suất dự đoán",
+            height=640,
+            color="#4c72b0",
+        )
 
         detail_df = pd.DataFrame(
             {
@@ -452,70 +545,160 @@ def render_prediction_tab() -> None:
 
 
 def render_eda_tab() -> None:
-    """Tab phụ: Hiển thị thống kê EDA, WordCloud theo thể loại và so sánh mô hình."""
+    """Tab phụ: Tổ chức 4 mục con rõ ràng theo nhóm dữ liệu, mô hình, nhãn và phân tích lỗi."""
     st.subheader("Khám phá dữ liệu (EDA) & So sánh hiệu năng mô hình")
 
     df = load_dataset_csv(str(STORIES_CSV))
-    if not df.empty:
-        label_cols = [f"label_{g}" for g in GENRE_LABELS if f"label_{g}" in df.columns]
+    label_cols = [f"label_{g}" for g in GENRE_LABELS if f"label_{g}" in df.columns] if not df.empty else []
 
+    if not df.empty:
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Tổng số truyện", f"{len(df):,}")
         m2.metric("Số thể loại", len(label_cols))
         m3.metric("Số nhãn TB / truyện", f"{df['n_labels'].mean():.2f}" if "n_labels" in df.columns else "-")
         m4.metric("Độ dài TB (từ)", f"{df['n_words'].mean():.1f}" if "n_words" in df.columns else "-")
 
-        col_eda1, col_eda2 = st.columns(2)
-        with col_eda1:
-            if label_cols:
-                counts = df[label_cols].sum().sort_values(ascending=False)
-                counts.index = [GENRE_DISPLAY_NAMES.get(c.replace("label_", ""), c) for c in counts.index]
-                st.markdown("**Phân bố số lượng mẫu theo thể loại**")
-                st.bar_chart(counts)
-        with col_eda2:
-            if "source" in df.columns and df["source"].nunique() > 1:
-                src_counts = df["source"].value_counts()
-                st.markdown("**Phân bố dữ liệu theo nguồn thu thập**")
-                st.bar_chart(src_counts)
-            elif "n_labels" in df.columns:
-                n_lbl_counts = df["n_labels"].value_counts().sort_index()
-                n_lbl_counts.index = [f"{int(k)} nhãn" for k in n_lbl_counts.index]
-                st.markdown("**Phân bố số nhãn trên mỗi truyện (webtruyen.vn)**")
-                st.bar_chart(n_lbl_counts)
-
-    st.markdown("**WordCloud từ vựng đặc trưng theo thể loại**")
-    selected_wc_genre = st.selectbox(
-        "Chọn thể loại để xem WordCloud",
-        options=GENRE_LABELS,
-        format_func=lambda g: GENRE_DISPLAY_NAMES.get(g, g),
+    sub_eda, sub_compare, sub_per_label, sub_error = st.tabs(
+        [
+            "1. Tổng quan dữ liệu (EDA)",
+            "2. So sánh mô hình",
+            f"3. Chi tiết theo {len(GENRE_LABELS)} thể loại",
+            "4. Phân tích lỗi & Giải thích",
+        ]
     )
-    wc_png = build_genre_wordcloud_png(selected_wc_genre)
-    if wc_png is not None:
-        st.image(
-            wc_png,
-            caption=f"WordCloud thể loại: {GENRE_DISPLAY_NAMES.get(selected_wc_genre, selected_wc_genre)}",
-            use_container_width=True,
-        )
 
-    exp_df = load_dataset_csv(str(EXPERIMENTS_CSV))
-    if not exp_df.empty:
-        clean_df = load_dataset_csv(str(STORIES_CLEAN_CSV))
-        n_test = int((clean_df["split"] == "test").sum()) if (not clean_df.empty and "split" in clean_df.columns) else 0
-        test_desc = f"trên {n_test} mẫu tập Test — webtruyen.vn" if n_test > 0 else "trên tập Test — webtruyen.vn"
-        st.markdown(f"**Bảng tổng hợp kết quả các mô hình ({test_desc})**")
-        st.dataframe(exp_df, use_container_width=True, hide_index=True)
+    with sub_eda:
+        if not df.empty:
+            if label_cols:
+                counts_s = df[label_cols].sum().sort_values(ascending=False)
+                genre_dist_df = pd.DataFrame(
+                    {
+                        "Thể loại": [GENRE_DISPLAY_NAMES.get(c.replace("label_", ""), c) for c in counts_s.index],
+                        "Số truyện": [int(v) for v in counts_s.values],
+                    }
+                )
+                st.markdown(f"**Phân bố số lượng mẫu theo {len(label_cols)} thể loại**")
+                _render_horizontal_bar_chart(
+                    genre_dist_df,
+                    label_col="Thể loại",
+                    value_col="Số truyện",
+                    x_title="Số truyện",
+                    height=680,
+                    color="#4c72b0",
+                )
 
-    figure_files = [FIGURES_DIR / fname for fname in FIGURE_CAPTIONS if (FIGURES_DIR / fname).exists()]
-    if figure_files:
-        st.markdown("**Biểu đồ phân tích đã lưu**")
-        cols = st.columns(2)
-        for idx, fig_path in enumerate(figure_files):
-            with cols[idx % 2]:
+            col_src, col_nlbl = st.columns(2)
+            with col_src:
+                if "source" in df.columns:
+                    src_counts = df["source"].value_counts()
+                    src_df = pd.DataFrame(
+                        {
+                            "Nguồn": [str(k) for k in src_counts.index],
+                            "Số truyện": [int(v) for v in src_counts.values],
+                        }
+                    )
+                    st.markdown("**Phân bố dữ liệu theo nguồn thu thập**")
+                    _render_horizontal_bar_chart(
+                        src_df,
+                        label_col="Nguồn",
+                        value_col="Số truyện",
+                        x_title="Số truyện",
+                        height=260,
+                        color="#dd8452",
+                    )
+            with col_nlbl:
+                if "n_labels" in df.columns:
+                    n_lbl_counts = df["n_labels"].value_counts().sort_index()
+                    n_lbl_counts.index = [f"{int(k):02d} nhãn" for k in n_lbl_counts.index]
+                    st.markdown("**Phân bố số nhãn trên mỗi truyện**")
+                    st.bar_chart(n_lbl_counts, height=260, color="#55a868")
+
+            st.divider()
+
+        st.markdown("**Tổng quan phân bố thể loại và độ dài văn án**")
+        if _show_saved_figure("eda_overview.png"):
+            st.divider()
+
+        st.markdown("**WordCloud từ vựng đặc trưng theo thể loại**")
+        col_wc_ctrl, col_wc_img = st.columns([1.0, 2.6])
+        with col_wc_ctrl:
+            selected_wc_genre = st.selectbox(
+                "Chọn thể loại để xem WordCloud",
+                options=GENRE_LABELS,
+                format_func=lambda g: GENRE_DISPLAY_NAMES.get(g, g),
+            )
+            wc_col_name = f"label_{selected_wc_genre}"
+            if not df.empty and wc_col_name in df.columns:
+                n_wc = int(df[wc_col_name].sum())
+                pct_wc = (n_wc / len(df) * 100.0) if len(df) else 0.0
+                st.metric("Số truyện thuộc thể loại", f"{n_wc:,}")
+                st.metric("Tỷ lệ trên toàn tập", f"{pct_wc:.2f}%")
+        with col_wc_img:
+            wc_png = build_genre_wordcloud_png(selected_wc_genre)
+            if wc_png is not None:
                 st.image(
-                    str(fig_path),
-                    caption=FIGURE_CAPTIONS.get(fig_path.name, fig_path.name),
+                    wc_png,
+                    caption=f"WordCloud thể loại: {GENRE_DISPLAY_NAMES.get(selected_wc_genre, selected_wc_genre)}",
                     use_container_width=True,
                 )
+
+    with sub_compare:
+        exp_df = load_dataset_csv(str(EXPERIMENTS_CSV))
+        if not exp_df.empty:
+            clean_df = load_dataset_csv(str(STORIES_CLEAN_CSV))
+            n_test = int((clean_df["split"] == "test").sum()) if (not clean_df.empty and "split" in clean_df.columns) else 0
+            test_desc = f"trên {n_test:,} mẫu tập Test" if n_test > 0 else "trên tập Test"
+            st.markdown(f"**Bảng tổng hợp kết quả các mô hình ({test_desc})**")
+            st.dataframe(exp_df, use_container_width=True, hide_index=True)
+
+        col_cmp1, col_cmp2 = st.columns(2)
+        with col_cmp1:
+            _show_saved_figure("ml_model_comparison.png")
+        with col_cmp2:
+            _show_saved_figure("all_models_comparison.png")
+
+        if (FIGURES_DIR / "dl_learning_curves.png").exists():
+            st.divider()
+            st.markdown("**Quá trình huấn luyện Deep Learning (TextCNN)**")
+            _show_saved_figure("dl_learning_curves.png")
+
+    with sub_per_label:
+        st.markdown(f"**So sánh trực tiếp Precision / Recall / F1 trên {len(GENRE_LABELS)} thể loại (ML vs Deep Learning)**")
+        col_lbl1, col_lbl2 = st.columns(2)
+        with col_lbl1:
+            _show_saved_figure("ml_f1_per_label.png")
+        with col_lbl2:
+            _show_saved_figure("dl_f1_per_label.png")
+
+        if (FIGURES_DIR / "ml_confusion_matrices.png").exists():
+            st.divider()
+            with st.expander(
+                f"Xem chi tiết lưới {len(GENRE_LABELS)} ma trận nhầm lẫn nhị phân (Logistic Regression)",
+                expanded=False,
+            ):
+                _show_saved_figure("ml_confusion_matrices.png")
+
+    with sub_error:
+        st.markdown("**1. Phân tích hiệu năng theo lát cắt dữ liệu (cấu trúc header, độ dài, số nhãn)**")
+        _show_saved_figure("error_analysis_slices.png")
+        slice_df = load_dataset_csv(str(TABLES_DIR / "error_analysis_by_slice.csv"))
+        if not slice_df.empty:
+            with st.expander("Xem bảng số liệu chi tiết theo lát cắt (error_analysis_by_slice.csv)", expanded=False):
+                st.dataframe(slice_df, use_container_width=True, hide_index=True)
+
+        if (FIGURES_DIR / "top_features_per_genre.png").exists():
+            st.divider()
+            st.markdown("**2. Giải thích đặc trưng TF-IDF quan trọng nhất (Logistic Regression)**")
+            _show_saved_figure("top_features_per_genre.png")
+
+        if (FIGURES_DIR / "error_confusion_pairs.png").exists():
+            st.divider()
+            st.markdown(f"**3. Ma trận cặp nhãn nhầm lẫn {len(GENRE_LABELS)}×{len(GENRE_LABELS)} & Các mẫu lỗi tiêu biểu**")
+            _show_saved_figure("error_confusion_pairs.png")
+            cases_df = load_dataset_csv(str(TABLES_DIR / "error_cases_sample.csv"))
+            if not cases_df.empty:
+                with st.expander("Xem 12 mẫu lỗi tiêu biểu trên tập Test (error_cases_sample.csv)", expanded=False):
+                    st.dataframe(cases_df, use_container_width=True, hide_index=True)
 
 
 def main() -> None:
@@ -524,8 +707,10 @@ def main() -> None:
         layout="wide",
     )
     st.title("Đồ án NLP Đề 11: Phân loại thể loại truyện tiếng Việt")
+    df_meta = load_dataset_csv(str(STORIES_CSV))
+    n_stories_str = f"{len(df_meta):,}" if not df_meta.empty else "đa nguồn"
     st.caption(
-        "Dữ liệu webtruyen.vn (18.603 truyện, 22 thể loại) | "
+        f"Dữ liệu đa nguồn ({n_stories_str} truyện, {len(GENRE_LABELS)} thể loại) | "
         "Pipeline: Tiền xử lý tiếng Việt (underthesea) → TF-IDF / Word Embedding → Logistic Regression / Linear SVM / Multinomial NB / TextCNN"
     )
 
